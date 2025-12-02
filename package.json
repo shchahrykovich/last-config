@@ -1,14 +1,15 @@
 {
-  "name": "last-config-app",
-  "version": "0.1.0",
+  "name": "last-config",
+  "version": "0.1.1",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
-    "upload": "opennextjs-cloudflare build && opennextjs-cloudflare upload",
+    "db:migrations:apply": "wrangler d1 migrations apply DB --remote",
+    "deploy-from-local": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "deploy": "npm run db:migrations:apply && npx opennextjs-cloudflare build && wrangler deploy",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "cf-typegen": "wrangler types --env-interface CloudflareEnv ./cloudflare-env.d.ts"
   },
