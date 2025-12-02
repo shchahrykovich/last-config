@@ -1,0 +1,34 @@
+/**
+ * For more details on how to configure Wrangler, refer to:
+ * https://developers.cloudflare.com/workers/wrangler/configuration/
+ */
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "last-config-app",
+	"main": ".open-next/worker.js",
+	"compatibility_date": "2025-05-05",
+	"compatibility_flags": [
+		"nodejs_compat",
+		"global_fetch_strictly_public"
+	],
+	"assets": {
+		"binding": "ASSETS",
+		"directory": ".open-next/assets"
+	},
+	"observability": {
+		"enabled": true
+	},
+	"upload_source_maps": true,
+	"preview_urls": false,
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "prod-last-config-app",
+			"migrations_dir": "prisma/migrations"
+		}
+	],
+	"vars": {
+		"GITHUB_URL": "https://github.com/shchahrykovich/last-config",
+		"ALLOW_TO_CREATE_MORE_THAN_ONE_TENANT": "false"
+	}
+}
