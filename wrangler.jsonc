@@ -4,7 +4,7 @@
  */
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "last-config-app",
+	"name": "last-config",
 	"main": ".open-next/worker.js",
 	"compatibility_date": "2025-05-05",
 	"compatibility_flags": [
