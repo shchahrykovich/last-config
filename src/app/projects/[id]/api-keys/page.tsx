@@ -2,9 +2,9 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Card, Button, List, message, Modal, Typography, Space, Spin, Empty, Tag, Popconfirm, Input } from 'antd';
+import { Card, Button, List, message, Modal, Typography, Space, Spin, Empty, Tag, Popconfirm, Input, Dropdown } from 'antd';
 import AppLayout from "@/components/AppLayout";
-import { KeyOutlined, PlusOutlined, DeleteOutlined, ArrowLeftOutlined, CopyOutlined, EyeOutlined } from "@ant-design/icons";
+import { KeyOutlined, PlusOutlined, DeleteOutlined, ArrowLeftOutlined, CopyOutlined, EyeOutlined, DownOutlined, LockOutlined, UnlockOutlined } from "@ant-design/icons";
 import type {
     GetApiKeysResponseSerialized,
     CreateApiKeyResponseSerialized,
@@ -57,7 +57,7 @@ const ApiKeysPage = () => {
         fetchApiKeys();
     }, [projectId]);
 
-    const handleCreateApiKey = async () => {
+    const handleCreateApiKey = async (type: 'secret' | 'public') => {
         try {
             setCreating(true);
 
@@ -66,6 +66,7 @@ const ApiKeysPage = () => {
                 headers: {
                     'Content-Type': 'application/json',
                 },
+                body: JSON.stringify({ type }),
             });
 
             if (!response.ok) {
@@ -142,20 +143,29 @@ const ApiKeysPage = () => {
             <div style={{ maxWidth: '1200px' }}>
                 <Space direction="vertical" size="large" style={{ width: '100%' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Button
-                            icon={<ArrowLeftOutlined />}
-                            onClick={() => router.push(`/projects/${projectId}`)}
+                        <Dropdown
+                            menu={{
+                                items: [
+                                    {
+                                        key: 'secret',
+                                        label: 'Secret API Key',
+                                        icon: <LockOutlined />,
+                                        onClick: () => handleCreateApiKey('secret'),
+                                    },
+                                    {
+                                        key: 'public',
+                                        label: 'Public API Key',
+                                        icon: <UnlockOutlined />,
+                                        onClick: () => handleCreateApiKey('public'),
+                                    },
+                                ],
+                            }}
+                            disabled={creating}
                         >
-                            Back to Project
-                        </Button>
-                        <Button
-                            type="primary"
-                            icon={<PlusOutlined />}
-                            onClick={handleCreateApiKey}
-                            loading={creating}
-                        >
-                            Generate New API Key
-                        </Button>
+                            <Button type="primary" icon={<PlusOutlined />} loading={creating}>
+                                Generate New API Key <DownOutlined />
+                            </Button>
+                        </Dropdown>
                     </div>
 
                     <List
@@ -174,14 +184,29 @@ const ApiKeysPage = () => {
                                     image={Empty.PRESENTED_IMAGE_SIMPLE}
                                     description="No API keys yet"
                                 >
-                                    <Button
-                                        type="primary"
-                                        icon={<PlusOutlined />}
-                                        onClick={handleCreateApiKey}
-                                        loading={creating}
+                                    <Dropdown
+                                        menu={{
+                                            items: [
+                                                {
+                                                    key: 'secret',
+                                                    label: 'Secret API Key',
+                                                    icon: <LockOutlined />,
+                                                    onClick: () => handleCreateApiKey('secret'),
+                                                },
+                                                {
+                                                    key: 'public',
+                                                    label: 'Public API Key',
+                                                    icon: <UnlockOutlined />,
+                                                    onClick: () => handleCreateApiKey('public'),
+                                                },
+                                            ],
+                                        }}
+                                        disabled={creating}
                                     >
-                                        Generate your first API key
-                                    </Button>
+                                        <Button type="primary" icon={<PlusOutlined />} loading={creating}>
+                                            Generate your first API key <DownOutlined />
+                                        </Button>
+                                    </Dropdown>
                                 </Empty>
                             )
                         }}
@@ -212,17 +237,26 @@ const ApiKeysPage = () => {
                                 >
                                     <div style={{ marginBottom: '12px' }}>
                                         <Title level={5} style={{ margin: 0, marginBottom: '8px' }}>
-                                            <KeyOutlined style={{ marginRight: '8px', color: '#1890ff' }} />
+                                            {apiKey.type === 'secret' ? (
+                                                <LockOutlined style={{ marginRight: '8px', color: '#1890ff' }} />
+                                            ) : (
+                                                <UnlockOutlined style={{ marginRight: '8px', color: '#52c41a' }} />
+                                            )}
                                             API Key
                                         </Title>
-                                        <Tag color="blue">{apiKey.type}</Tag>
+                                        <Tag color={apiKey.type === 'secret' ? 'blue' : 'green'}>
+                                            {apiKey.type}
+                                        </Tag>
                                     </div>
                                     <div style={{ marginBottom: '12px' }}>
                                         <Text type="secondary" style={{ fontSize: '11px', display: 'block', marginBottom: '4px' }}>
-                                            Public Key:
+                                            {apiKey.type === 'secret' ? 'Secret Key:' : 'Public Key:'}
                                         </Text>
                                         <Text code style={{ fontSize: '12px', wordBreak: 'break-all' }}>
-                                            sk_{apiKey.public}_••••••••
+                                            {apiKey.type === 'secret'
+                                                ? `sk_${apiKey.public}_••••••••`
+                                                : `pk_${apiKey.public}`
+                                            }
                                         </Text>
                                     </div>
                                     <Text type="secondary" style={{ fontSize: '11px' }}>
@@ -304,8 +338,13 @@ const ApiKeysPage = () => {
                             fontSize: '12px'
                         }}>
                             <Text type="secondary">
-                                <strong>How to use:</strong> Include this key in your API requests as a bearer token
-                                or in your application's configuration file.
+                                <strong>How to use:</strong> Include this key in your API requests' Authorization header.
+                                {newApiKey?.fullKey.startsWith('sk_') && (
+                                    <><br/><strong>Note:</strong> Secret keys should only be used on the server-side (backend) and never exposed in client-side code.</>
+                                )}
+                                {newApiKey?.fullKey.startsWith('pk_') && (
+                                    <><br/><strong>Note:</strong> Public keys can be safely used in client-side (frontend) code.</>
+                                )}
                             </Text>
                         </div>
                     </Space>

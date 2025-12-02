@@ -58,20 +58,22 @@ Test configuration is in `vitest.config.ts` with:
 - Schema location: `prisma/schema.prisma`
 - Migrations: `prisma/migrations/` (configured in `wrangler.jsonc`)
 
-### Domain and Business logic
-- Place domain services and business logic here src/services
+### Domain and Business Logic
+- Place domain services and business logic in `src/services`
 - API must call domain services
-- domain service is class
+- Domain service is class
 
-### Customer facing API
-- use api key authentication
-- - folder src/app/api/v1
+### Customer Facing API
+- Use API key authentication
+- Located in `src/app/api/v1`
 
-### API
-- folder src/app/api
-- for each endpoint create dto.ts with request and response schema
-- shared dtos is here src/app/api/shared-dto.ts
-- you must use authMiddleware from src/infrastructure/middlewares.ts for requests
+### API Structure
+- Located in `src/app/api`
+- For each endpoint create `dto.ts` with request and response schema
+- Shared DTOs in `src/app/api/shared-dto.ts`
+- Use `authMiddleware` from `src/infrastructure/middlewares.ts` for authenticated requests
+- Use `secretApiKeyAuthMiddleware` from `src/infrastructure/middlewares.ts` for secret API key authentication (backend only, format: `sk_{public}_{private}`)
+- Use `publicApiKeyAuthMiddleware` from `src/infrastructure/middlewares.ts` for public API key authentication (can be used in frontend, format: `pk_{public}`)
 
 ### Authentication
 - **NextAuth v5** (beta) with Prisma adapter
@@ -106,9 +108,12 @@ Environment variables:
 Core entities in `prisma/schema.prisma`:
 - **Tenants** - Tenant organizations
 - **Projects** - Projects within tenants
-- **ApiKeys** - API keys scoped to tenant/project
+- **ApiKeys** - API keys scoped to tenant/project (supports two types):
+  - **Secret keys** (`sk_{public}_{private}`) - For backend use only, private part is bcrypt hashed
+  - **Public keys** (`pk_{public}`) - Can be safely used in frontend code, no private part
 - **Prompts** - Prompt library entries
 - **PromptVersions** - Versioned prompts
+- **FeatureFlags** - Feature flags
 - **User/Account/Session** - NextAuth models
 
 ### UI Framework

@@ -1,17 +1,11 @@
 import * as zod from 'zod'
 
 // ============================================================================
-// Prompt Body Schema - Cross-platform LLM format
+// Prompt Body Schema - Simple message format
 // ============================================================================
 
 export const PromptBodySchema = zod.object({
-    model: zod.string().optional(),
-    messages: zod.array(zod.object({
-        role: zod.string(),
-        content: zod.string(),
-    })).optional(),
-    temperature: zod.number().optional(),
-    max_tokens: zod.number().optional(),
+    message: zod.string(),
 })
 
 export type PromptBody = zod.infer<typeof PromptBodySchema>

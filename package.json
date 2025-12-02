@@ -1,5 +1,5 @@
 {
-  "name": "last-config",
+  "name": "last-config-app",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -22,7 +22,7 @@
     "bcryptjs": "^3.0.3",
     "lodash": "^4.17.21",
     "next": "15.5.2",
-    "next-auth": "^5.0.0-beta.30",
+    "next-auth": "^5.0.0-beta.29",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "uuid": "^13.0.0",
@@ -39,7 +39,7 @@
     "prisma": "^6.15.0",
     "vitest": "~3.2.0",
     "typescript": "^5",
-    "wrangler": "^4.51.0"
+    "wrangler": "^4.52.0"
   },
   "cloudflare": {
     "bindings": {

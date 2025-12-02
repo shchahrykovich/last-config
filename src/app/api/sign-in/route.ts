@@ -4,7 +4,7 @@ import {NextRequest, NextResponse} from 'next/server'
 import {signIn} from '@/app/auth'
 import {AuthError} from 'next-auth'
 import * as zod from 'zod'
-import {logError} from "@/infrastructure/logging";
+import {logError, logInfo} from "@/infrastructure/logging";
 
 const SignInSchema = zod.object({
     email: zod.string().email({
@@ -17,6 +17,7 @@ const SignInSchema = zod.object({
 
 export async function POST(request: NextRequest) {
     try {
+        logInfo('sign_in_request');
         const body = await request.json()
         const {email, password} = await SignInSchema.parseAsync(body)
 

@@ -10,8 +10,8 @@ import type {
     CreateProjectRequest,
     GetProjectsResponseSerialized,
     CreateProjectResponseSerialized,
-    ErrorResponse
 } from '@/app/api/projects/dto';
+import {ErrorResponse} from "@/app/api/shared-dto";
 
 const { Title, Text } = Typography;
 

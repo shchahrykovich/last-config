@@ -1,7 +1,7 @@
 import 'server-only'
 
 import { NextResponse } from 'next/server'
-import { apiKeyAuthMiddleware } from '@/infrastructure/middlewares'
+import { secretApiKeyAuthMiddleware } from '@/infrastructure/middlewares'
 import { createErrorResponse } from '@/infrastructure/api-requests'
 import type { GetPromptsResponse } from './dto'
 
@@ -17,7 +17,7 @@ type Params = {
  * curl -H "Authorization: Bearer sk_{public}_{private}" \
  *      https://your-domain/api/v1/prompts
  */
-export const GET = apiKeyAuthMiddleware(async (context, db, req, { params }: Params) => {
+export const GET = secretApiKeyAuthMiddleware(async (context, db, req, { params }: Params) => {
     try {
         // Fetch all prompts for this project and tenant
         const prompts = await db.prompts.findMany({
@@ -50,7 +50,7 @@ export const GET = apiKeyAuthMiddleware(async (context, db, req, { params }: Par
         })
 
         return NextResponse.json<GetPromptsResponse>({
-            prompts: parsedPrompts
+            items: parsedPrompts
         }, { status: 200 })
 
     } catch (error) {

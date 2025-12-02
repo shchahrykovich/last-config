@@ -1,7 +1,7 @@
 import 'server-only'
 
 import { NextResponse } from 'next/server'
-import { apiKeyAuthMiddleware } from '@/infrastructure/middlewares'
+import { secretApiKeyAuthMiddleware } from '@/infrastructure/middlewares'
 import { createErrorResponse } from '@/infrastructure/api-requests'
 import type { GetPromptByIdResponse } from '../dto'
 
@@ -18,7 +18,7 @@ type Params = {
  * curl -H "Authorization: Bearer sk_{public}_{private}" \
  *      https://your-domain/api/v1/prompts/123
  */
-export const GET = apiKeyAuthMiddleware(async (context, db, req, { params }: Params) => {
+export const GET = secretApiKeyAuthMiddleware(async (context, db, req, { params }: Params) => {
     try {
         const { id } = await params
         const promptId = parseInt(id, 10)
@@ -55,14 +55,12 @@ export const GET = apiKeyAuthMiddleware(async (context, db, req, { params }: Par
         }
 
         return NextResponse.json<GetPromptByIdResponse>({
-            prompt: {
-                id: prompt.id,
-                name: prompt.name,
-                body: parsedBody,
-                projectId: prompt.projectId,
-                createdAt: prompt.createdAt,
-                updatedAt: prompt.updatedAt,
-            }
+            id: prompt.id,
+            name: prompt.name,
+            body: parsedBody,
+            projectId: prompt.projectId,
+            createdAt: prompt.createdAt,
+            updatedAt: prompt.updatedAt,
         }, { status: 200 })
 
     } catch (error) {

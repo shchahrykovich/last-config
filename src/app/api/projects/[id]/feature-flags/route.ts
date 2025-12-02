@@ -4,10 +4,11 @@ import { NextResponse } from 'next/server'
 import { authMiddleware } from '@/infrastructure/middlewares'
 import { createErrorResponse } from '@/infrastructure/api-requests'
 import {
-    type GetApiKeysResponse,
-    type CreateApiKeyResponse
+    type GetFeatureFlagsResponse,
+    type CreateFeatureFlagResponse,
+    CreateFeatureFlagRequestSchema
 } from './dto'
-import { ApiKeyService } from '@/services/api-keys/api-key-service'
+import { FeatureFlagService } from '@/services/feature-flags/feature-flag-service'
 
 type Params = {
     params: Promise<{ id: string }>
@@ -25,10 +26,10 @@ export const GET = authMiddleware(async (currentUser, db, req, { params }: Param
             )
         }
 
-        const apiKeyService = new ApiKeyService(db)
+        const featureFlagService = new FeatureFlagService(db)
 
         // Verify project access
-        const hasAccess = await apiKeyService.verifyProjectAccess(projectId, currentUser.tenantId)
+        const hasAccess = await featureFlagService.verifyProjectAccess(projectId, currentUser.tenantId)
         if (!hasAccess) {
             return NextResponse.json(
                 { error: 'Project not found' },
@@ -36,10 +37,10 @@ export const GET = authMiddleware(async (currentUser, db, req, { params }: Param
             )
         }
 
-        const apiKeys = await apiKeyService.getApiKeysByProjectId(projectId, currentUser.tenantId)
-        return NextResponse.json<GetApiKeysResponse>({ apiKeys }, { status: 200 })
+        const featureFlags = await featureFlagService.getFeatureFlagsByProjectId(projectId, currentUser.tenantId)
+        return NextResponse.json<GetFeatureFlagsResponse>({ featureFlags }, { status: 200 })
     } catch (error) {
-        return createErrorResponse(error, 'get_api_keys_error')
+        return createErrorResponse(error, 'get_feature_flags_error')
     }
 })
 
@@ -55,14 +56,13 @@ export const POST = authMiddleware(async (currentUser, db, req, { params }: Para
             )
         }
 
-        // Parse request body
         const body = await req.json()
-        const { type } = body
+        const validatedData = CreateFeatureFlagRequestSchema.parse(body)
 
-        const apiKeyService = new ApiKeyService(db)
+        const featureFlagService = new FeatureFlagService(db)
 
         // Verify project access
-        const hasAccess = await apiKeyService.verifyProjectAccess(projectId, currentUser.tenantId)
+        const hasAccess = await featureFlagService.verifyProjectAccess(projectId, currentUser.tenantId)
         if (!hasAccess) {
             return NextResponse.json(
                 { error: 'Project not found' },
@@ -70,28 +70,24 @@ export const POST = authMiddleware(async (currentUser, db, req, { params }: Para
             )
         }
 
-        const { apiKey, fullKey } = await apiKeyService.createApiKey({
+        const featureFlag = await featureFlagService.createFeatureFlag({
+            name: validatedData.name,
+            description: validatedData.description,
+            type: validatedData.type,
+            value: validatedData.value,
+            userId: validatedData.userId,
+            userRole: validatedData.userRole,
+            userAccountId: validatedData.userAccountId,
+            isPublic: validatedData.isPublic,
             projectId,
             tenantId: currentUser.tenantId,
-            type: type || 'secret', // Default to secret if not provided
         })
 
-        // Return the API key without the hashed private field, but include the full key
-        return NextResponse.json<CreateApiKeyResponse>({
-            message: 'API key created successfully',
-            apiKey: {
-                id: apiKey.id,
-                tenantId: apiKey.tenantId,
-                projectId: apiKey.projectId,
-                public: apiKey.public,
-                type: apiKey.type,
-                createdAt: apiKey.createdAt,
-                updatedAt: apiKey.updatedAt,
-            },
-            fullKey, // This is the only time the full key will be returned
+        return NextResponse.json<CreateFeatureFlagResponse>({
+            message: 'Feature flag created successfully',
+            featureFlag,
         }, { status: 201 })
-
     } catch (error) {
-        return createErrorResponse(error, 'create_api_key_error')
+        return createErrorResponse(error, 'create_feature_flag_error')
     }
 })

@@ -1,7 +1,7 @@
 import 'server-only'
 
 import { NextResponse } from 'next/server'
-import { apiKeyAuthMiddleware } from '@/infrastructure/middlewares'
+import { secretApiKeyAuthMiddleware } from '@/infrastructure/middlewares'
 
 type Params = {
     params: Promise<{}>
@@ -14,7 +14,7 @@ type Params = {
  * Usage:
  * curl -H "Authorization: Bearer sk_{public}_{private}" https://your-domain/api/v1/health
  */
-export const GET = apiKeyAuthMiddleware(async (context, db, req, { params }: Params) => {
+export const GET = secretApiKeyAuthMiddleware(async (context, db, req, { params }: Params) => {
     return NextResponse.json({
         status: 'Ok',
     }, { status: 200 })

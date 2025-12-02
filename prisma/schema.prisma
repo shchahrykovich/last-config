@@ -27,6 +27,8 @@ model Projects {
   tenantId  Int
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
 }
 
 model ApiKeys {
@@ -38,6 +40,10 @@ model ApiKeys {
   type      String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  isPublic  Boolean  @default(false)
+
+  @@index([public])
+  @@index([tenantId, projectId])
 }
 
 model Prompts {
@@ -48,19 +54,27 @@ model Prompts {
   tenantId  Int
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([tenantId, projectId])
 }
 
 model FeatureFlags {
   id            Int      @id @default(autoincrement())
   name          String
-  value         String
+  description   String   @default("")
+  value         String   @default("")
+  type          String   @default("string")
   userId        String   @default("")
   userRole      String   @default("")
   userAccountId String   @default("")
   projectId     Int
   tenantId      Int
+  isPublic      Boolean  @default(false)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+
+  @@index([tenantId, projectId])
+  @@index([tenantId, projectId, userId, userRole, userAccountId])
 }
 
 model PromptVersions {
@@ -92,6 +106,7 @@ model Account {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
+  @@index([userId])
   @@map("accounts")
 }
 
@@ -102,6 +117,7 @@ model Session {
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
   @@map("sessions")
 }
 
@@ -116,6 +132,7 @@ model User {
   accounts      Account[]
   sessions      Session[]
 
+  @@index([tenantId])
   @@map("users")
 }
 

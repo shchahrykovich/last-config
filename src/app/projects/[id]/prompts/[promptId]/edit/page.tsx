@@ -117,15 +117,6 @@ const PromptEditPage = () => {
                 <Card>
                     <div style={{ textAlign: 'center', padding: '40px 0' }}>
                         <Typography.Text type="secondary">Prompt not found</Typography.Text>
-                        <div style={{ marginTop: '16px' }}>
-                            <Button
-                                type="primary"
-                                icon={<ArrowLeftOutlined />}
-                                onClick={() => router.push(`/projects/${projectId}/prompts`)}
-                            >
-                                Back to Prompts
-                            </Button>
-                        </div>
                     </div>
                 </Card>
             </AppLayout>
@@ -136,13 +127,6 @@ const PromptEditPage = () => {
         <AppLayout title="Edit Prompt" icon={<EditOutlined />}>
             <div style={{ maxWidth: '900px' }}>
                 <Space direction="vertical" size="large" style={{ width: '100%' }}>
-                    <Button
-                        icon={<ArrowLeftOutlined />}
-                        onClick={() => router.push(`/projects/${projectId}/prompts`)}
-                    >
-                        Back to Prompts
-                    </Button>
-
                     <Card>
                         <Title level={4} style={{ marginBottom: '24px' }}>
                             <EditOutlined style={{ marginRight: '12px', color: '#1890ff' }} />

@@ -5,7 +5,7 @@ import * as zod from 'zod'
 // ============================================================================
 
 export const CreateApiKeyRequestSchema = zod.object({
-    // No fields needed - keys are auto-generated
+    type: zod.enum(['secret', 'public']).default('secret'),
 })
 
 export type CreateApiKeyRequest = zod.infer<typeof CreateApiKeyRequestSchema>

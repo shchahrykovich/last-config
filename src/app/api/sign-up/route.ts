@@ -5,7 +5,7 @@ import { getDB } from '@/lib/utils'
 import bcrypt from 'bcryptjs'
 import * as zod from 'zod'
 import {createTenant} from "@/services/tenants/tenant-service";
-import {logError} from "@/infrastructure/logging";
+import {logError, logInfo} from "@/infrastructure/logging";
 
 const SignUpSchema = zod.object({
     email: zod.string().email({
@@ -18,8 +18,12 @@ const SignUpSchema = zod.object({
 
 export async function POST(request: NextRequest) {
     try {
+        logInfo('sign_up_request');
         const body = await request.json()
         const { email, password } = await SignUpSchema.parseAsync(body)
+
+        // Normalize email to lowercase
+        const normalizedEmail = email.toLowerCase()
 
         const db = await getDB();
 
@@ -34,7 +38,7 @@ export async function POST(request: NextRequest) {
         }
 
         const existingUser = await db.user.findUnique({
-            where: { email }
+            where: { email: normalizedEmail }
         });
 
         if (existingUser) {
@@ -46,13 +50,13 @@ export async function POST(request: NextRequest) {
 
         const tenant = await createTenant(db);
 
-        const salt = bcrypt.genSaltSync(10)
-        const hashedPassword = bcrypt.hashSync(password, salt)
+        // Use async bcrypt hash
+        const hashedPassword = await bcrypt.hash(password, 10)
 
         // Create the user
         const user = await db.user.create({
             data: {
-                email,
+                email: normalizedEmail,
                 password: hashedPassword,
                 tenantId: tenant.id,
             }

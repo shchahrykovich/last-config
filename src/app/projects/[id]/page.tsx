@@ -108,51 +108,6 @@ const ProjectDetailPage = () => {
                             </Descriptions.Item>
                         </Descriptions>
                     </Card>
-
-                    <Title level={5} style={{ marginTop: '16px' }}>Project Resources</Title>
-
-                    <Row gutter={16}>
-                        <Col xs={24} sm={12} md={8}>
-                            <Card
-                                hoverable
-                                style={{ cursor: 'pointer' }}
-                                onClick={() => router.push(`/projects/${projectId}/prompts`)}
-                            >
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center' }}>
-                                        <FileTextOutlined style={{ fontSize: '24px', color: '#1890ff', marginRight: '12px' }} />
-                                        <div>
-                                            <Title level={5} style={{ margin: 0 }}>Prompts</Title>
-                                            <Text type="secondary" style={{ fontSize: '12px' }}>
-                                                Manage LLM prompts
-                                            </Text>
-                                        </div>
-                                    </div>
-                                    <RightOutlined style={{ color: '#8c8c8c' }} />
-                                </div>
-                            </Card>
-                        </Col>
-                        <Col xs={24} sm={12} md={8}>
-                            <Card
-                                hoverable
-                                style={{ cursor: 'pointer' }}
-                                onClick={() => router.push(`/projects/${projectId}/api-keys`)}
-                            >
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center' }}>
-                                        <KeyOutlined style={{ fontSize: '24px', color: '#52c41a', marginRight: '12px' }} />
-                                        <div>
-                                            <Title level={5} style={{ margin: 0 }}>API Keys</Title>
-                                            <Text type="secondary" style={{ fontSize: '12px' }}>
-                                                Manage access keys
-                                            </Text>
-                                        </div>
-                                    </div>
-                                    <RightOutlined style={{ color: '#8c8c8c' }} />
-                                </div>
-                            </Card>
-                        </Col>
-                    </Row>
                 </Space>
             </div>
         </AppLayout>

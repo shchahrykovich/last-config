@@ -69,7 +69,7 @@ export type ApiKeyAuthHandler<T, P = unknown> = (
  * Middleware for API key authentication
  * Expects Authorization header with format: Bearer sk_{public}_{private}
  */
-export function apiKeyAuthMiddleware<T, P>(handler: ApiKeyAuthHandler<T, P>) {
+export function secretApiKeyAuthMiddleware<T, P>(handler: ApiKeyAuthHandler<T, P>) {
     return async (req: NextRequest, {params}: { params: Promise<P> }) => {
         try {
             // Extract API key from Authorization header
@@ -79,10 +79,7 @@ export function apiKeyAuthMiddleware<T, P>(handler: ApiKeyAuthHandler<T, P>) {
             }
 
             // Check if it's a Bearer token
-            const [type, apiKey] = authHeader.split(' ');
-            if (type !== 'Bearer' || !apiKey) {
-                return NextResponse.json({error: 'Invalid Authorization format. Expected: Bearer sk_{public}_{private}'}, {status: 401});
-            }
+            const apiKey = authHeader.trim();
 
             // Parse API key format: sk_{public}_{private}
             const parts = apiKey.split('_');
@@ -134,6 +131,75 @@ export function apiKeyAuthMiddleware<T, P>(handler: ApiKeyAuthHandler<T, P>) {
             });
         } catch (error) {
             return createErrorResponse(error, 'api_key_auth_error');
+        }
+    }
+}
+
+// ============================================================================
+// Public API Key Authentication Middleware
+// ============================================================================
+
+/**
+ * Middleware for public API key authentication
+ * Expects Authorization header with format: pk_{public}
+ * Public keys can be safely used in client-side code
+ */
+export function publicApiKeyAuthMiddleware<T, P>(handler: ApiKeyAuthHandler<T, P>) {
+    return async (req: NextRequest, {params}: { params: Promise<P> }) => {
+        try {
+            // Extract API key from Authorization header
+            const authHeader = req.headers.get('Authorization');
+            if (!authHeader) {
+                return NextResponse.json({error: 'Missing Authorization header'}, {status: 401});
+            }
+
+            const apiKey = authHeader.trim();
+
+            // Parse API key format: pk_{public}
+            const parts = apiKey.split('_');
+            if (parts.length !== 2 || parts[0] !== 'pk') {
+                return NextResponse.json({error: 'Invalid API key format. Expected: pk_{public}'}, {status: 401});
+            }
+
+            const [, publicKey] = parts;
+
+            if (!publicKey) {
+                return NextResponse.json({error: 'Invalid API key format'}, {status: 401});
+            }
+
+            const db = await getDB();
+
+            // Look up public API key
+            const apiKeyRecord = await db.apiKeys.findFirst({
+                where: {
+                    public: publicKey,
+                    type: 'public',
+                }
+            });
+
+            if (!apiKeyRecord) {
+                return NextResponse.json({error: 'Invalid API key'}, {status: 401});
+            }
+
+            // Create context with API key information
+            const context: ApiKeyAuthContext = {
+                apiKey: apiKeyRecord,
+                projectId: apiKeyRecord.projectId,
+                tenantId: apiKeyRecord.tenantId,
+            };
+
+            return loggingStore.run({
+                tenantId: apiKeyRecord.tenantId,
+                projectId: apiKeyRecord.projectId,
+                apiKeyId: apiKeyRecord.id,
+                method: req.method,
+                url: req.url,
+                reqId: uuidv7(),
+            }, () => {
+                return handler(context, db, req, {params});
+            });
+        } catch (error) {
+            return createErrorResponse(error, 'public_api_key_auth_error');
         }
     }
 }

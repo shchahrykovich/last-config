@@ -15,14 +15,12 @@ export const PromptResponseSchema = zod.object({
 
 export type PromptResponse = zod.infer<typeof PromptResponseSchema>
 
-export const GetPromptByIdResponseSchema = zod.object({
-    prompt: PromptResponseSchema,
-})
+export const GetPromptByIdResponseSchema = PromptResponseSchema
 
 export type GetPromptByIdResponse = zod.infer<typeof GetPromptByIdResponseSchema>
 
 export const GetPromptsResponseSchema = zod.object({
-    prompts: zod.array(PromptResponseSchema),
+    items: zod.array(PromptResponseSchema),
 })
 
 export type GetPromptsResponse = zod.infer<typeof GetPromptsResponseSchema>

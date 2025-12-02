@@ -9,16 +9,19 @@ export class ApiKeyService {
 
     /**
      * Generates a cryptographically secure random string
+     * Ensures no underscores are present to avoid conflicts with key format delimiters
      */
     private generateSecureRandomString(length: number): string {
-        return crypto.randomBytes(length).toString('base64url').slice(0, length)
+        // Generate base64url string and replace underscores with hyphens
+        // This prevents conflicts with the sk_{public}_{private} format
+        return crypto.randomBytes(length).toString('base64url').slice(0, length).replace(/_/g, '-')
     }
 
     /**
-     * Generates a new API key pair
+     * Generates a new secret API key pair
      * @returns Object containing public key, private key, and full key in format sk_{public}_{private}
      */
-    private async generateApiKey(): Promise<{
+    private async generateSecretApiKey(): Promise<{
         publicKey: string
         privateKey: string
         fullKey: string
@@ -45,27 +48,70 @@ export class ApiKeyService {
     }
 
     /**
+     * Generates a new public API key
+     * @returns Object containing public key and full key in format pk_{public}
+     */
+    private generatePublicApiKey(): {
+        publicKey: string
+        fullKey: string
+    } {
+        // Generate secure random string for public part
+        // Public part: 32 characters (longer since it's the only part)
+        const publicKey = this.generateSecureRandomString(32)
+
+        // Create full key in format pk_{public}
+        const fullKey = `pk_${publicKey}`
+
+        return {
+            publicKey,
+            fullKey,
+        }
+    }
+
+    /**
      * Creates a new API key for a project
      */
     async createApiKey(data: {
         projectId: number
         tenantId: number
+        type: 'secret' | 'public'
     }) {
-        const { publicKey, fullKey, hashedPrivateKey } = await this.generateApiKey()
+        if (data.type === 'public') {
+            // Generate public API key
+            const { publicKey, fullKey } = this.generatePublicApiKey()
 
-        const apiKey = await this.db.apiKeys.create({
-            data: {
-                tenantId: data.tenantId,
-                projectId: data.projectId,
-                public: publicKey,
-                private: hashedPrivateKey,
-                type: 'secret', // Type of API key
+            const apiKey = await this.db.apiKeys.create({
+                data: {
+                    tenantId: data.tenantId,
+                    projectId: data.projectId,
+                    public: publicKey,
+                    private: '', // No private key for public API keys
+                    type: 'public',
+                }
+            })
+
+            return {
+                apiKey,
+                fullKey, // Return the full key only once - it won't be retrievable later
             }
-        })
+        } else {
+            // Generate secret API key
+            const { publicKey, fullKey, hashedPrivateKey } = await this.generateSecretApiKey()
 
-        return {
-            apiKey,
-            fullKey, // Return the full key only once - it won't be retrievable later
+            const apiKey = await this.db.apiKeys.create({
+                data: {
+                    tenantId: data.tenantId,
+                    projectId: data.projectId,
+                    public: publicKey,
+                    private: hashedPrivateKey,
+                    type: 'secret',
+                }
+            })
+
+            return {
+                apiKey,
+                fullKey, // Return the full key only once - it won't be retrievable later
+            }
         }
     }
 
