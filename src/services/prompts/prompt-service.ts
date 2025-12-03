@@ -49,11 +49,12 @@ export class PromptService {
         return project !== null
     }
 
-    async getPromptById(promptId: number, tenantId: number) {
+    async getPromptById(promptId: number, tenantId: number, projectId: number) {
         const prompt = await this.db.prompts.findFirst({
             where: {
                 id: promptId,
-                tenantId
+                tenantId,
+                projectId
             }
         })
 
@@ -62,6 +63,7 @@ export class PromptService {
 
     async updatePrompt(
         promptId: number,
+        projectId: number,
         tenantId: number,
         data: {
             name?: string
@@ -80,7 +82,8 @@ export class PromptService {
         const prompt = await this.db.prompts.updateMany({
             where: {
                 id: promptId,
-                tenantId
+                tenantId,
+                projectId
             },
             data: updateData
         })
@@ -89,6 +92,6 @@ export class PromptService {
             return null
         }
 
-        return await this.getPromptById(promptId, tenantId)
+        return await this.getPromptById(promptId, tenantId, projectId)
     }
 }

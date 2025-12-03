@@ -17,15 +17,6 @@ export type GetFeatureFlagRequest = zod.infer<typeof GetFeatureFlagRequestSchema
 // Response Schemas
 // ============================================================================
 
-export const FeatureFlagPublicDtoSchema = zod.object({
-    name: zod.string(),
-    value: zod.union([zod.string(), zod.number(), zod.boolean()]),
-})
-
-export type FeatureFlagPublicDto = zod.infer<typeof FeatureFlagPublicDtoSchema>
-
-export const GetFeatureFlagResponseSchema = zod.object({
-    featureFlags: zod.array(FeatureFlagPublicDtoSchema),
-})
+export const GetFeatureFlagResponseSchema = zod.record(zod.string(), zod.union([zod.string(), zod.number(), zod.boolean()]))
 
 export type GetFeatureFlagResponse = zod.infer<typeof GetFeatureFlagResponseSchema>

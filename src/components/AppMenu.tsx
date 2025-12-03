@@ -71,6 +71,12 @@ const getProjectMenuItems = (projectId: string | null): MenuItem[] => {
                 },
                 {
                     key: '1-4',
+                    icon: <SettingOutlined />,
+                    label: 'Config',
+                    path: `/projects/${projectId}/config`,
+                },
+                {
+                    key: '1-5',
                     icon: <DatabaseOutlined />,
                     label: 'Prompts',
                     path: `/projects/${projectId}/prompts`,

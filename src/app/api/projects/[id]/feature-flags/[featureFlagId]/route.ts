@@ -1,7 +1,7 @@
 import 'server-only'
 
 import { NextResponse } from 'next/server'
-import { authMiddleware } from '@/infrastructure/middlewares'
+import {authMiddleware, authMiddlewareForProjects} from '@/infrastructure/middlewares'
 import { createErrorResponse } from '@/infrastructure/api-requests'
 import {
     type GetFeatureFlagResponse,
@@ -15,13 +15,16 @@ type Params = {
     params: Promise<{ id: string; featureFlagId: string }>
 }
 
-export const GET = authMiddleware(async (currentUser, db, req, { params }: Params) => {
+export const GET = authMiddlewareForProjects(async (currentUser,
+                                                    db,
+                                                    req,
+                                                    projectId,
+                                                    {params}: Params) => {
     try {
-        const { id, featureFlagId } = await params
-        const projectId = parseInt(id, 10)
+        const { featureFlagId } = await params
         const flagId = parseInt(featureFlagId, 10)
 
-        if (isNaN(projectId) || isNaN(flagId)) {
+        if (isNaN(flagId)) {
             return NextResponse.json(
                 { error: 'Invalid ID' },
                 { status: 400 }
@@ -54,13 +57,16 @@ export const GET = authMiddleware(async (currentUser, db, req, { params }: Param
     }
 })
 
-export const PUT = authMiddleware(async (currentUser, db, req, { params }: Params) => {
+export const PUT = authMiddlewareForProjects(async (currentUser,
+                                                    db,
+                                                    req,
+                                                    projectId,
+                                                    {params}: Params) => {
     try {
-        const { id, featureFlagId } = await params
-        const projectId = parseInt(id, 10)
+        const { featureFlagId } = await params
         const flagId = parseInt(featureFlagId, 10)
 
-        if (isNaN(projectId) || isNaN(flagId)) {
+        if (isNaN(flagId)) {
             return NextResponse.json(
                 { error: 'Invalid ID' },
                 { status: 400 }
@@ -110,13 +116,16 @@ export const PUT = authMiddleware(async (currentUser, db, req, { params }: Param
     }
 })
 
-export const DELETE = authMiddleware(async (currentUser, db, req, { params }: Params) => {
+export const DELETE = authMiddlewareForProjects(async (currentUser,
+                                                       db,
+                                                       req,
+                                                       projectId,
+                                                       {params}: Params) => {
     try {
-        const { id, featureFlagId } = await params
-        const projectId = parseInt(id, 10)
+        const { featureFlagId } = await params
         const flagId = parseInt(featureFlagId, 10)
 
-        if (isNaN(projectId) || isNaN(flagId)) {
+        if (isNaN(flagId)) {
             return NextResponse.json(
                 { error: 'Invalid ID' },
                 { status: 400 }

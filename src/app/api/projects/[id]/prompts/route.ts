@@ -2,7 +2,7 @@ import 'server-only'
 
 import { NextResponse } from 'next/server'
 import * as zod from 'zod'
-import { authMiddleware } from '@/infrastructure/middlewares'
+import {authMiddleware, authMiddlewareForProjects} from '@/infrastructure/middlewares'
 import { createErrorResponse } from '@/infrastructure/api-requests'
 import {
     CreatePromptRequestSchema,
@@ -11,22 +11,11 @@ import {
 } from './dto'
 import { PromptService } from '@/services/prompts/prompt-service'
 
-type Params = {
-    params: Promise<{ id: string }>
-}
-
-export const GET = authMiddleware(async (currentUser, db, req, { params }: Params) => {
+export const GET = authMiddlewareForProjects(async (currentUser,
+                                                    db,
+                                                    req,
+                                                    projectId) => {
     try {
-        const { id } = await params
-        const projectId = parseInt(id, 10)
-
-        if (isNaN(projectId)) {
-            return NextResponse.json(
-                { error: 'Invalid project ID' },
-                { status: 400 }
-            )
-        }
-
         const promptService = new PromptService(db)
 
         // Verify project access
@@ -45,18 +34,11 @@ export const GET = authMiddleware(async (currentUser, db, req, { params }: Param
     }
 })
 
-export const POST = authMiddleware(async (currentUser, db, req, { params }: Params) => {
+export const POST = authMiddlewareForProjects(async (currentUser,
+                                                     db,
+                                                     req,
+                                                     projectId) => {
     try {
-        const { id } = await params
-        const projectId = parseInt(id, 10)
-
-        if (isNaN(projectId)) {
-            return NextResponse.json(
-                { error: 'Invalid project ID' },
-                { status: 400 }
-            )
-        }
-
         const promptService = new PromptService(db)
 
         // Verify project access

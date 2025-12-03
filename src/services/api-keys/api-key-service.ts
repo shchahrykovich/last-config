@@ -176,10 +176,11 @@ export class ApiKeyService {
     /**
      * Deletes an API key
      */
-    async deleteApiKey(apiKeyId: number, tenantId: number): Promise<boolean> {
+    async deleteApiKey(apiKeyId: number, tenantId: number, projectId: number): Promise<boolean> {
         const result = await this.db.apiKeys.deleteMany({
             where: {
                 id: apiKeyId,
+                projectId,
                 tenantId,
             }
         })

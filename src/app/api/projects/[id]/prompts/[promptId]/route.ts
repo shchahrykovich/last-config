@@ -2,7 +2,7 @@ import 'server-only'
 
 import { NextResponse } from 'next/server'
 import * as zod from 'zod'
-import { authMiddleware } from '@/infrastructure/middlewares'
+import {authMiddleware, authMiddlewareForProjects} from '@/infrastructure/middlewares'
 import { createErrorResponse } from '@/infrastructure/api-requests'
 import {
     UpdatePromptRequestSchema,
@@ -15,7 +15,11 @@ type Params = {
     params: Promise<{ id: string; promptId: string }>
 }
 
-export const GET = authMiddleware(async (currentUser, db, req, { params }: Params) => {
+export const GET = authMiddlewareForProjects(async (currentUser,
+                                                    db,
+                                                    req,
+                                                    projectId,
+                                                    {params}: Params) => {
     try {
         const { promptId } = await params
         const promptIdNum = parseInt(promptId, 10)
@@ -28,7 +32,7 @@ export const GET = authMiddleware(async (currentUser, db, req, { params }: Param
         }
 
         const promptService = new PromptService(db)
-        const prompt = await promptService.getPromptById(promptIdNum, currentUser.tenantId)
+        const prompt = await promptService.getPromptById(promptIdNum, currentUser.tenantId, projectId)
 
         if (!prompt) {
             return NextResponse.json(
@@ -43,7 +47,11 @@ export const GET = authMiddleware(async (currentUser, db, req, { params }: Param
     }
 })
 
-export const PUT = authMiddleware(async (currentUser, db, req, { params }: Params) => {
+export const PUT = authMiddlewareForProjects(async (currentUser,
+                                                    db,
+                                                    req,
+                                                    projectId,
+                                                    {params}: Params) => {
     try {
         const { promptId } = await params
         const promptIdNum = parseInt(promptId, 10)
@@ -61,6 +69,7 @@ export const PUT = authMiddleware(async (currentUser, db, req, { params }: Param
         const promptService = new PromptService(db)
         const prompt = await promptService.updatePrompt(
             promptIdNum,
+            projectId,
             currentUser.tenantId,
             updateData
         )
