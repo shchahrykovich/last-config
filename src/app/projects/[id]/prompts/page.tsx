@@ -16,9 +16,11 @@ import {
     Popconfirm,
 } from 'antd';
 import AppLayout from "@/components/AppLayout";
+import PageHeader from "@/components/PageHeader";
+import Breadcrumb from "@/components/Breadcrumb";
 import HelpDrawerTitle from '@/components/HelpDrawerTitle';
 import PromptsApiExamples from '@/components/PromptsApiExamples';
-import { FileTextOutlined, PlusOutlined, EditOutlined } from "@ant-design/icons";
+import { FileTextOutlined, PlusOutlined, EditOutlined, ProjectOutlined } from "@ant-design/icons";
 import type {
     PromptDtoSerialized,
     GetPromptsResponseSerialized,
@@ -26,6 +28,7 @@ import type {
     CreatePromptResponseSerialized,
 } from '@/app/api/projects/[id]/prompts/dto';
 import type { ErrorResponse } from '@/app/api/shared-dto';
+import type { GetProjectByIdResponseSerialized } from '@/app/api/projects/dto';
 
 const { Text, Paragraph, Title } = Typography;
 const { TextArea } = Input;
@@ -36,11 +39,25 @@ const PromptsPage = () => {
     const projectId = params.id as string;
 
     const [prompts, setPrompts] = useState<PromptDtoSerialized[]>([]);
+    const [projectName, setProjectName] = useState<string>('');
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [creating, setCreating] = useState(false);
     const [form] = Form.useForm<CreatePromptRequest>();
     const [deletingId, setDeletingId] = useState<number | null>(null);
+
+    const fetchProject = async () => {
+        try {
+            const response = await fetch(`/api/projects/${projectId}`);
+            if (response.ok) {
+                const data: GetProjectByIdResponseSerialized = await response.json();
+                setProjectName(data.project.name);
+            }
+        } catch (error) {
+            console.error('Failed to load project name:', error);
+        }
+    };
+
     const fetchPrompts = async () => {
         try {
             setLoading(true);
@@ -62,6 +79,7 @@ const PromptsPage = () => {
     };
 
     useEffect(() => {
+        fetchProject();
         fetchPrompts();
     }, [projectId]);
 
@@ -71,6 +89,7 @@ const PromptsPage = () => {
             const sanitizedBody = {
                 message: values.body.message,
                 model: values.body.model?.trim() ? values.body.model.trim() : undefined,
+                responseSchema: values.body.responseSchema?.trim() ? values.body.responseSchema.trim() : undefined,
             };
 
             const response = await fetch(`/api/projects/${projectId}/prompts`, {
@@ -240,12 +259,23 @@ const PromptsPage = () => {
 
     return (
         <AppLayout>
-            <div style={{ maxWidth: '1200px' }}>
-                <Space direction="vertical" size="large" style={{ width: '100%' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+            <PageHeader
+                title="Prompts"
+                subtitle="Manage and version your prompts"
+                icon={<FileTextOutlined />}
+                breadcrumb={
+                    <Breadcrumb
+                        items={[
+                            { label: 'Projects', href: '/' },
+                            { label: projectName || 'Loading...', href: `/projects/${projectId}`, icon: <ProjectOutlined /> },
+                            { label: 'Prompts' }
+                        ]}
+                    />
+                }
+                actions={
+                    <Space>
                         <HelpDrawerTitle
-                            title="Prompts"
-                            icon={<FileTextOutlined />}
+                            title=""
                             helpTitle="Prompt requests"
                             helpContent={<PromptsApiExamples />}
                         />
@@ -253,10 +283,16 @@ const PromptsPage = () => {
                             type="primary"
                             icon={<PlusOutlined />}
                             onClick={showModal}
+                            size="large"
                         >
                             New Prompt
                         </Button>
-                    </div>
+                    </Space>
+                }
+            />
+
+            <div style={{ maxWidth: '1200px' }}>
+                <Space direction="vertical" size="large" style={{ width: '100%' }}>
 
                     <Table
                         rowKey="id"
@@ -309,6 +345,17 @@ const PromptsPage = () => {
                             <Input
                                 allowClear
                                 placeholder="Enter a model name"
+                            />
+                        </Form.Item>
+
+                        <Form.Item
+                            label="Response Schema"
+                            name={['body', 'responseSchema']}
+                        >
+                            <TextArea
+                                allowClear
+                                rows={4}
+                                placeholder="Enter response schema (JSON)"
                             />
                         </Form.Item>
 

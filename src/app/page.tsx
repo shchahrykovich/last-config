@@ -1,9 +1,12 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { Button, Card, Form, Input, List, message, Modal, Spin, Typography, Empty } from 'antd';
+import { Button, Form, Input, List, message, Modal, Spin } from 'antd';
 import AppLayout from "@/components/AppLayout";
-import { PlusOutlined, ProjectOutlined } from "@ant-design/icons";
+import PageHeader from "@/components/PageHeader";
+import ProjectCard from "@/components/ProjectCard";
+import EmptyState from "@/components/EmptyState";
+import { PlusOutlined, ProjectOutlined, FolderOpenOutlined } from "@ant-design/icons";
 import { useRouter } from 'next/navigation';
 import type {
     ProjectDtoSerialized,
@@ -12,8 +15,6 @@ import type {
     CreateProjectResponseSerialized,
 } from '@/app/api/projects/dto';
 import {ErrorResponse} from "@/app/api/shared-dto";
-
-const { Title, Text } = Typography;
 
 const Home = () => {
     const router = useRouter();
@@ -86,66 +87,61 @@ const Home = () => {
     };
 
     return (
-        <AppLayout title="Projects" icon={<ProjectOutlined />}>
-            <div style={{ maxWidth: '1200px' }}>
-                <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Text type="secondary">Manage your projects</Text>
+        <AppLayout>
+            <PageHeader
+                title="Projects"
+                subtitle="Manage your configuration projects"
+                icon={<ProjectOutlined />}
+                actions={
                     <Button
                         type="primary"
                         icon={<PlusOutlined />}
                         onClick={showModal}
+                        size="large"
                     >
                         New Project
                     </Button>
-                </div>
+                }
+            />
 
-                {loading ? (
-                    <div style={{ textAlign: 'center', padding: '100px 0' }}>
-                        <Spin size="large" />
-                    </div>
-                ) : (
-                    <List
-                        grid={{
-                            gutter: 16,
-                            xs: 1,
-                            sm: 2,
-                            md: 2,
-                            lg: 3,
-                            xl: 3,
-                            xxl: 4,
-                        }}
-                        locale={{
-                            emptyText: (
-                                <Empty
-                                    image={Empty.PRESENTED_IMAGE_SIMPLE}
-                                    description="No projects yet"
-                                >
-                                    <Button type="primary" icon={<PlusOutlined />} onClick={showModal}>
-                                        Create your first project
-                                    </Button>
-                                </Empty>
-                            )
-                        }}
-                        dataSource={projects}
-                        renderItem={(project) => (
-                            <List.Item>
-                                <Card
-                                    hoverable
-                                    style={{ height: '100%', cursor: 'pointer' }}
-                                    onClick={() => router.push(`/projects/${project.id}`)}
-                                >
-                                    <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px' }}>
-                                        <ProjectOutlined style={{ fontSize: '24px', color: '#1890ff', marginRight: '12px' }} />
-                                        <Title level={5} style={{ margin: 0 }}>{project.name}</Title>
-                                    </div>
-                                    <Text type="secondary" style={{ fontSize: '12px' }}>
-                                        Created {new Date(project.createdAt).toLocaleDateString()}
-                                    </Text>
-                                </Card>
-                            </List.Item>
-                        )}
-                    />
-                )}
+            {loading ? (
+                <div style={{ textAlign: 'center', padding: '100px 0' }}>
+                    <Spin size="large" />
+                </div>
+            ) : projects.length === 0 ? (
+                <EmptyState
+                    icon={<FolderOpenOutlined />}
+                    title="No projects yet"
+                    description="Create your first project to start managing feature flags, configs, and prompts"
+                    action={{
+                        label: 'Create your first project',
+                        icon: <PlusOutlined />,
+                        onClick: showModal,
+                    }}
+                />
+            ) : (
+                <List
+                    grid={{
+                        gutter: 16,
+                        xs: 1,
+                        sm: 2,
+                        md: 2,
+                        lg: 3,
+                        xl: 3,
+                        xxl: 4,
+                    }}
+                    dataSource={projects}
+                    renderItem={(project) => (
+                        <List.Item>
+                            <ProjectCard
+                                name={project.name}
+                                createdAt={project.createdAt}
+                                onClick={() => router.push(`/projects/${project.id}`)}
+                            />
+                        </List.Item>
+                    )}
+                />
+            )}
 
                 <Modal
                     title="Create New Project"
@@ -185,7 +181,6 @@ const Home = () => {
                         </Form.Item>
                     </Form>
                 </Modal>
-            </div>
         </AppLayout>
     );
 };

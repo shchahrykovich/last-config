@@ -11,6 +11,7 @@ export default defineWorkersConfig({
         exclude: [
             '**/node_modules/**',
             '**/dist/**',
+            'tests/app/**/*.*',
             '**/.{idea,git,cache,output,temp}/**',
             '**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build}.config.*',
             '**/tests/integration/**', // Exclude integration tests requiring Next.js/database setup

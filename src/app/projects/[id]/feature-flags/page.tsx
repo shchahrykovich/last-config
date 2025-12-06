@@ -4,9 +4,11 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { Button, Table, message, Modal, Form, Input, Space, Spin, Popconfirm, Tag, Select, Switch } from 'antd';
 import AppLayout from "@/components/AppLayout";
+import PageHeader from "@/components/PageHeader";
+import Breadcrumb from "@/components/Breadcrumb";
 import HelpDrawerTitle from '@/components/HelpDrawerTitle';
 import FeatureFlagsApiExamples from '@/components/FeatureFlagsApiExamples';
-import { FlagOutlined, PlusOutlined, DeleteOutlined, EditOutlined, CopyOutlined, SearchOutlined } from "@ant-design/icons";
+import { FlagOutlined, PlusOutlined, DeleteOutlined, EditOutlined, CopyOutlined, SearchOutlined, ProjectOutlined } from "@ant-design/icons";
 import type { ColumnsType } from 'antd/es/table';
 import type { FilterDropdownProps } from 'antd/es/table/interface';
 import type {
@@ -16,6 +18,7 @@ import type {
     FeatureFlagDtoSerialized,
 } from '@/app/api/projects/[id]/feature-flags/dto';
 import type { ErrorResponse } from '@/app/api/shared-dto';
+import type { GetProjectByIdResponseSerialized } from '@/app/api/projects/dto';
 
 interface CreateFeatureFlagFormData {
     name: string;
@@ -44,6 +47,7 @@ const FeatureFlagsPage = () => {
     const projectId = params.id as string;
 
     const [featureFlags, setFeatureFlags] = useState<FeatureFlagDtoSerialized[]>([]);
+    const [projectName, setProjectName] = useState<string>('');
     const [loading, setLoading] = useState(true);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -54,6 +58,18 @@ const FeatureFlagsPage = () => {
 
     const [createForm] = Form.useForm<CreateFeatureFlagFormData>();
     const [editForm] = Form.useForm<UpdateFeatureFlagFormData>();
+
+    const fetchProject = async () => {
+        try {
+            const response = await fetch(`/api/projects/${projectId}`);
+            if (response.ok) {
+                const data: GetProjectByIdResponseSerialized = await response.json();
+                setProjectName(data.project.name);
+            }
+        } catch (error) {
+            console.error('Failed to load project name:', error);
+        }
+    };
 
     const fetchFeatureFlags = async () => {
         try {
@@ -76,6 +92,7 @@ const FeatureFlagsPage = () => {
     };
 
     useEffect(() => {
+        fetchProject();
         fetchFeatureFlags();
     }, [projectId]);
 
@@ -450,12 +467,23 @@ const FeatureFlagsPage = () => {
 
     return (
         <AppLayout>
-            <div style={{ maxWidth: '1400px' }}>
-                <Space direction="vertical" size="large" style={{ width: '100%' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+            <PageHeader
+                title="Feature Flags"
+                subtitle="Toggle features for different users"
+                icon={<FlagOutlined />}
+                breadcrumb={
+                    <Breadcrumb
+                        items={[
+                            { label: 'Projects', href: '/' },
+                            { label: projectName || 'Loading...', href: `/projects/${projectId}`, icon: <ProjectOutlined /> },
+                            { label: 'Feature Flags' }
+                        ]}
+                    />
+                }
+                actions={
+                    <Space>
                         <HelpDrawerTitle
-                            title="Feature Flags"
-                            icon={<FlagOutlined />}
+                            title=""
                             helpTitle="Feature Flags API"
                             helpContent={<FeatureFlagsApiExamples />}
                         />
@@ -463,10 +491,16 @@ const FeatureFlagsPage = () => {
                             type="primary"
                             icon={<PlusOutlined />}
                             onClick={() => setIsCreateModalOpen(true)}
+                            size="large"
                         >
                             Create Feature Flag
                         </Button>
-                    </div>
+                    </Space>
+                }
+            />
+
+            <div style={{ maxWidth: '1400px' }}>
+                <Space direction="vertical" size="large" style={{ width: '100%' }}>
 
                     <Table
                         columns={columns}

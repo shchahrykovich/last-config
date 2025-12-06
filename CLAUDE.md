@@ -28,13 +28,17 @@ npm run lint             # Run ESLint
 
 ## Testing
 
-Tests are run using Vitest with Cloudflare Workers pool:
+The project has two types of tests with separate configurations:
+
+### Service/Backend Tests (Cloudflare Workers)
+
+Tests for services, infrastructure, and server-side logic using Vitest with Cloudflare Workers pool:
 
 ```bash
-# Run all tests
+# Run service tests
 npm test
 
-# Run tests in watch mode
+# Run in watch mode
 npm run test:watch
 
 # Run specific test file
@@ -47,6 +51,30 @@ Test configuration is in `vitest.config.ts` with:
 - Isolated worker mode (each test file runs in separate runtime)
 - Uses `wrangler.jsonc` for Cloudflare bindings
 - Integration tests excluded by default (Next.js/OpenNext incompatibilities)
+
+### Component/UI Tests (jsdom)
+
+Tests for React components and pages using Vitest with jsdom:
+
+```bash
+# Run component tests
+npm run test:component
+
+# Run in watch mode
+npm run test:component:watch
+
+# Run all tests (service + component)
+npm run all-test
+```
+
+Component test configuration is in `vitest.config.component.ts` with:
+- jsdom environment for React component testing
+- React Testing Library for component interactions
+- Setup file at `tests/setup-component-tests.ts` with mocks for:
+  - `window.matchMedia` (for Ant Design responsive components)
+  - `ResizeObserver` (for Ant Design modals)
+  - `next/navigation` (Next.js router)
+  - `next-auth/react` (authentication)
 
 ### How to Write Tests
 
@@ -192,6 +220,7 @@ it('should delete record from database', async () => {
 - Service tests: `tests/services/[service-name]/[service-name].test.ts`
 - Infrastructure tests: `tests/infrastructure/[file-name].test.ts`
 - Lib tests: `tests/lib/[file-name].test.ts`
+- Component tests: `tests/app/[page-name]/page.test.tsx`
 
 **Test Cleanup**
 - Always clean up test data in `afterAll` hooks
@@ -199,10 +228,80 @@ it('should delete record from database', async () => {
 - Use `deleteMany` with `tenantId` filter for efficient cleanup
 
 **Current Test Coverage**
-- 143 tests across 12 test files
+- 163 tests across 13 test files
 - Services: api-keys, config, feature-flags, projects, prompts, tenants, users, value-parser
 - Infrastructure: api-requests, logging, middlewares
 - Lib: utils
+- Components: users page
+
+### How to Write Component Tests
+
+Component tests use React Testing Library and should focus on user interactions and UI behavior.
+
+**Basic Component Test Pattern:**
+```typescript
+import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import MyPage from '@/app/my-page/page'
+
+// Mock child components or dependencies if needed
+vi.mock('@/components/AppLayout', () => ({
+  default: ({ children, title }: { children: React.ReactNode; title: string }) => (
+    <div data-testid="app-layout">
+      <h1>{title}</h1>
+      {children}
+    </div>
+  ),
+}))
+
+describe('MyPage', () => {
+  beforeEach(() => {
+    // Reset mocks before each test
+    global.fetch = vi.fn()
+  })
+
+  it('should render the page', () => {
+    render(<MyPage />)
+    expect(screen.getByText('Expected Text')).toBeInTheDocument()
+  })
+
+  it('should handle user interactions', async () => {
+    const user = userEvent.setup()
+
+    // Mock API response
+    global.fetch = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ data: 'mock data' }),
+    })
+
+    render(<MyPage />)
+
+    // Simulate user interaction
+    const button = screen.getByRole('button', { name: 'Click Me' })
+    await user.click(button)
+
+    // Assert expected behavior
+    await waitFor(() => {
+      expect(screen.getByText('Success')).toBeInTheDocument()
+    })
+  })
+})
+```
+
+**Component Testing Best Practices:**
+- Test user behavior, not implementation details
+- Use `screen.getByRole()` and semantic queries when possible
+- Mock API calls with `global.fetch`
+- Use `waitFor()` for async operations and state updates
+- For Ant Design modals, wait for animations or check for functional results rather than DOM removal
+- Mock complex child components to isolate the component under test
+- Use `userEvent` for simulating user interactions (more realistic than `fireEvent`)
+
+**Testing Ant Design Components:**
+- Modals may not fully unmount immediately due to animations - test functional outcomes instead
+- Use class selectors for Ant Design components when needed (e.g., `.ant-spin`, `.ant-modal`)
+- Suppress expected warnings in `tests/setup-component-tests.ts`
 
 ## Architecture
 
@@ -292,7 +391,9 @@ Custom logging utilities in `src/infrastructure/logging.ts`:
 - `open-next.config.ts` - OpenNext configuration for Cloudflare
 - `next.config.ts` - Next.js config with Cloudflare dev mode initialization
 - `prisma.config.ts` - Prisma config pointing to schema directory
-- `vitest.config.ts` - Test configuration with Cloudflare Workers pool
+- `vitest.config.ts` - Service test configuration with Cloudflare Workers pool
+- `vitest.config.component.ts` - Component test configuration with jsdom
+- `tests/setup-component-tests.ts` - Component test setup with mocks
 - `src/lib/utils.ts` - Core utilities (DB access, Cloudflare context)
 - `src/middleware.ts` - Auth middleware with route protection
 
@@ -313,3 +414,410 @@ const db = await getDB()
 
 ### Path Aliases
 Project uses `@/*` alias for `src/*` directory (configured in tsconfig and vitest config).
+
+## Design System
+
+The application follows a clean, minimal design system focused on content and usability.
+
+### Color Palette
+
+Colors are defined in `src/lib/theme.ts` as `lcColors`:
+
+**Text Colors:**
+- `textPrimary: #37352F` - Main text, headings
+- `textSecondary: #787774` - Secondary text, labels
+- `textTertiary: #9B9A97` - Tertiary text, hints
+
+**Background Colors:**
+- `bgBase: #FFFFFF` - Cards, modals, inputs
+- `bgPage: #FBFBFA` - Page background
+- `bgSidebar: #F7F6F3` - Sidebar background
+- `bgHover: #F1F0EE` - Hover state
+- `bgActive: #E9E8E6` - Active/selected state
+
+**Border Colors:**
+- `borderPrimary: #E9E9E7` - Primary borders
+- `borderSecondary: #EDECE9` - Subtle dividers
+
+**Accent Colors (use sparingly):**
+- `accentBlue: #0B6E99` - Links, info
+- `accentGreen: #0F7B6C` - Success
+- `accentRed: #E03E3E` - Errors, danger
+- `accentOrange: #D9730D` - Warnings
+
+### Typography
+
+**Font Stack:**
+```css
+-apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif
+```
+
+**Size Scale:**
+- Heading 1: 32px, weight 700 (page titles)
+- Heading 2: 24px, weight 600 (section titles)
+- Heading 3: 20px, weight 600 (subsections)
+- Heading 4: 16px, weight 600 (card titles)
+- Heading 5: 14px, weight 600 (small headings)
+- Body: 14px, weight 400 (regular text)
+- Small: 13px, weight 400 (secondary text)
+- Tiny: 12px, weight 400 (captions, metadata)
+
+**Best Practices:**
+- Use negative letter-spacing (-0.5px) for large headings
+- Maintain 1.5 line-height for body text
+- Use 1.2-1.3 line-height for headings
+- Never use pure black (#000000), use `textPrimary` instead
+
+### Spacing System
+
+Consistent spacing scale (defined in theme tokens):
+- **XS**: 8px - Tight spacing, inline elements
+- **SM**: 12px - Close relationships
+- **MD**: 16px - Default spacing
+- **LG**: 24px - Section spacing
+- **XL**: 32px - Major sections
+- **XXL**: 40px - Page-level spacing
+
+**Padding:**
+- Cards: 20-24px
+- Modals: 24px
+- Page content: 40px 60px
+- Buttons: 16px horizontal, auto vertical
+
+**Margins:**
+- Between sections: 32px
+- Between related items: 16px
+- Between form fields: 24px
+
+### Component Patterns
+
+#### Reusable Components
+
+**Always use these custom components for consistency:**
+
+1. **PageHeader** (`@/components/PageHeader`)
+   ```tsx
+   <PageHeader
+     title="Page Title"
+     subtitle="Optional description"
+     icon={<Icon />}
+     breadcrumb={<Breadcrumb items={[...]} />}
+     actions={<Button>Action</Button>}
+   />
+   ```
+
+2. **ProjectCard** (`@/components/ProjectCard`)
+   - Use for project listings
+   - Built-in hover effects and animations
+   ```tsx
+   <ProjectCard
+     name="Project Name"
+     createdAt={isoDate}
+     onClick={() => navigate()}
+   />
+   ```
+
+3. **EmptyState** (`@/components/EmptyState`)
+   - Use instead of Ant Design's `<Empty>`
+   - Better visual design and UX
+   ```tsx
+   <EmptyState
+     icon={<Icon />}
+     title="No items yet"
+     description="Create your first item to get started"
+     action={{ label: 'Create', onClick: handler, icon: <PlusOutlined /> }}
+   />
+   ```
+
+4. **Breadcrumb** (`@/components/Breadcrumb`)
+   ```tsx
+   <Breadcrumb items={[
+     { label: 'Projects', href: '/' },
+     { label: 'Project Name', href: '/projects/123' },
+     { label: 'Current Page' }
+   ]} />
+   ```
+
+#### Layout Pattern
+
+**Standard page structure:**
+```tsx
+<AppLayout>
+  <PageHeader
+    title="Page Title"
+    subtitle="Description"
+    icon={<Icon />}
+    breadcrumb={<Breadcrumb items={[...]} />}
+    actions={<Button>Primary Action</Button>}
+  />
+
+  {/* Page content */}
+</AppLayout>
+```
+
+**Do NOT pass `title` or `icon` props to `AppLayout` - use `PageHeader` instead.**
+
+#### Cards
+
+**Hover Effects:**
+- Subtle lift: `transform: translateY(-2px)`
+- Border color change: `borderSecondary` → `borderPrimary`
+- Shadow elevation: subtle → `0 4px 12px rgba(0, 0, 0, 0.08)`
+- Smooth transition: `0.2s cubic-bezier(0.4, 0, 0.2, 1)`
+
+**Pattern:**
+```tsx
+const [isHovered, setIsHovered] = useState(false);
+
+<Card
+  onMouseEnter={() => setIsHovered(true)}
+  onMouseLeave={() => setIsHovered(false)}
+  style={{
+    border: `1px solid ${isHovered ? lcColors.borderPrimary : lcColors.borderSecondary}`,
+    transform: isHovered ? 'translateY(-2px)' : 'translateY(0)',
+    boxShadow: isHovered ? '0 4px 12px rgba(0, 0, 0, 0.08)' : '0 1px 2px rgba(0, 0, 0, 0.04)',
+    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+  }}
+>
+  {content}
+</Card>
+```
+
+#### Buttons
+
+**Primary Actions:**
+- Use `type="primary"` sparingly (1-2 per page max)
+- For main page action (e.g., "Create Project")
+
+**Secondary Actions:**
+- Use `type="default"` for most buttons
+- Clear borders, subtle hover
+
+**Text Buttons:**
+- Use `type="text"` for tertiary actions
+- Navigation, cancel, dismiss
+
+**Danger Actions:**
+- Use `danger` prop for destructive actions
+- Delete, remove, clear
+
+**Button Sizes:**
+- `size="large"` - Page-level primary actions
+- Default size - Most buttons
+- `size="small"` - Compact spaces, tables
+
+#### Forms
+
+**Layout:**
+- Always use `layout="vertical"` for forms
+- Label above input (better for scanning)
+
+**Validation:**
+- Show errors on blur or submit, not on every keystroke
+- Use clear, actionable error messages
+- Required fields marked with asterisk (automatic with Ant Design)
+
+**Spacing:**
+- 24px between form fields
+- Group related fields with less spacing (16px)
+
+**Pattern:**
+```tsx
+<Form layout="vertical" onFinish={handleSubmit}>
+  <Form.Item
+    label="Field Label"
+    name="fieldName"
+    rules={[
+      { required: true, message: 'Please enter a value' },
+      { max: 255, message: 'Must be less than 255 characters' }
+    ]}
+  >
+    <Input placeholder="Placeholder text" />
+  </Form.Item>
+
+  <Form.Item style={{ marginTop: '24px' }}>
+    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+      <Button onClick={handleCancel}>Cancel</Button>
+      <Button type="primary" htmlType="submit">Submit</Button>
+    </div>
+  </Form.Item>
+</Form>
+```
+
+#### Modals
+
+**Structure:**
+```tsx
+<Modal
+  title="Modal Title"
+  open={isOpen}
+  onCancel={handleClose}
+  footer={null}  // Always null, use form buttons
+  width={500}    // Default width for most modals
+>
+  <Form layout="vertical" onFinish={handleSubmit}>
+    {/* Form content */}
+  </Form>
+</Modal>
+```
+
+**Best Practices:**
+- Set `footer={null}` and use form buttons instead
+- Close on cancel and after successful submit
+- Reset form on close
+- Use controlled state for `open` prop
+
+### Animations & Transitions
+
+**Page Transitions:**
+- All page content wrapped in `.page-content` class
+- Automatic fade-in animation (0.3s ease-out)
+- Subtle upward motion (8px translateY)
+
+**Interactive Elements:**
+- Hover transitions: 0.15s - 0.2s
+- Use `cubic-bezier(0.4, 0, 0.2, 1)` for natural easing
+- Button press: `scale(0.98)` on `:active`
+
+**Loading States:**
+- Use skeleton screens (`.skeleton` class) over spinners when possible
+- For full-page loading, center spinner with padding
+- Show loading state immediately on action
+
+**Available Animations:**
+```css
+/* Fade-in for pages */
+.page-content { animation: fadeIn 0.3s ease-out; }
+
+/* Skeleton loading */
+.skeleton { /* shimmer animation */ }
+
+/* Button press */
+button:active { transform: scale(0.98); }
+```
+
+### Icons
+
+**Usage:**
+- Use Ant Design icons (`@ant-design/icons`)
+- Outlined style preferred (not filled)
+- Consistent sizing:
+  - Page headers: 28px
+  - Card headers: 20-24px
+  - Buttons: 14-16px
+  - Menu items: 18px
+
+**Colors:**
+- Primary text color: `lcColors.textSecondary`
+- Hover: `lcColors.textPrimary`
+- Disabled: `lcColors.textTertiary`
+
+### Borders & Shadows
+
+**Borders:**
+- Default: 1px solid `lcColors.borderSecondary`
+- Hover/focus: 1px solid `lcColors.borderPrimary`
+- Never use thick borders (max 1px)
+
+**Shadows:**
+- Resting: `0 1px 2px rgba(0, 0, 0, 0.04)`
+- Hover: `0 4px 12px rgba(0, 0, 0, 0.08)`
+- Elevated: `0 8px 24px rgba(0, 0, 0, 0.12)`
+- Never use harsh, dark shadows
+
+**Border Radius:**
+- Small: 2-3px (buttons, inputs, tags)
+- Medium: 6px (cards, modals)
+- Never use large border radius (max 6px)
+
+### Accessibility
+
+**Focus States:**
+- Custom focus outline: `2px solid rgba(0, 0, 0, 0.1)`
+- 2px offset for visibility
+- Never remove focus outlines
+
+**Keyboard Navigation:**
+- All interactive elements must be keyboard accessible
+- Modal should close on `Escape`
+- Forms submit on `Enter`
+- Use semantic HTML (`button`, `nav`, `main`)
+
+**Screen Readers:**
+- Use `aria-label` for icon-only buttons
+- Breadcrumb should have `aria-label="Breadcrumb"`
+- Loading states should announce to screen readers
+
+**Color Contrast:**
+- Text colors meet WCAG AA standards
+- Don't rely on color alone to convey meaning
+- Use icons + text for actions
+
+### Best Practices
+
+**DO:**
+- ✅ Use `lcColors` constants for all colors
+- ✅ Use reusable components (`PageHeader`, `EmptyState`, etc.)
+- ✅ Add subtle hover effects to interactive elements
+- ✅ Maintain consistent spacing (8px scale)
+- ✅ Use page fade-in animations
+- ✅ Keep shadows subtle
+- ✅ Test keyboard navigation
+- ✅ Use semantic HTML
+- ✅ Group related content visually
+- ✅ Add loading states for async operations
+
+**DON'T:**
+- ❌ Use bright, saturated colors
+- ❌ Add heavy shadows or borders
+- ❌ Use large border radius (max 6px)
+- ❌ Put multiple primary buttons on one page
+- ❌ Use pure black (#000) or pure white (#FFF) for text
+- ❌ Skip loading states
+- ❌ Ignore hover states
+- ❌ Mix different card styles
+- ❌ Use inline styles when theme tokens exist
+- ❌ Create new spacing values (use the scale)
+
+### Design Checklist
+
+Before committing new UI components:
+
+- [ ] Uses `lcColors` from theme
+- [ ] Has hover state (if interactive)
+- [ ] Has loading state (if async)
+- [ ] Has empty state (if lists data)
+- [ ] Uses consistent spacing (8px scale)
+- [ ] Uses proper typography scale
+- [ ] Has keyboard support
+- [ ] Has focus indicators
+- [ ] Tested on mobile (responsive)
+- [ ] Follows existing component patterns
+- [ ] No hardcoded colors or spacing
+- [ ] Smooth transitions (0.15-0.3s)
+
+### File Organization
+
+**Component Files:**
+```
+src/components/
+  ├── AppLayout.tsx        # Main layout wrapper
+  ├── AppMenu.tsx          # Sidebar navigation
+  ├── PageHeader.tsx       # Page header with breadcrumb
+  ├── Breadcrumb.tsx       # Navigation breadcrumb
+  ├── ProjectCard.tsx      # Project card with hover
+  ├── EmptyState.tsx       # Better empty states
+  └── [feature]Component.tsx
+```
+
+**Theme Files:**
+```
+src/lib/
+  └── theme.ts             # Color palette & Ant Design theme config
+```
+
+**Style Files:**
+```
+src/app/
+  └── globals.css          # Global styles, animations, utilities
+```

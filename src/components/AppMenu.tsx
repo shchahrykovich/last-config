@@ -181,7 +181,7 @@ export default function AppMenu({ collapsed }: AppMenuProps) {
             <div style={{
                 flex: 1,
                 overflow: 'auto',
-                paddingBottom: '8px'
+                padding: '8px 12px'
             }}>
                 <Menu
                     theme="light"
@@ -193,60 +193,57 @@ export default function AppMenu({ collapsed }: AppMenuProps) {
                     onClick={({ key }) => handleMenuClick(key)}
                     style={{
                         borderRight: 0,
-                        height: '100%'
+                        height: '100%',
+                        backgroundColor: 'transparent'
                     }}
                 />
             </div>
 
             <div style={{
                 flexShrink: 0,
-                backgroundColor: '#ffffff',
-                borderTop: '1px solid #f0f0f0',
-                padding: '16px'
+                padding: '12px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px'
             }}>
                 {!collapsed ? (
-                    <div>
-                        <div>
-                            <Button
-                                type="primary"
-                                danger
-                                icon={<LogoutOutlined />}
-                                onClick={handleLogout}
-                                style={{
-                                    width: '100%',
-                                    height: '40px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center'
-                                }}
-                                size="large"
-                            >
-                                Logout
-                            </Button>
-                        </div>
-                        <div>
-                            <AppNewVersionNotifier />
-                        </div>
-                    </div>
-                ) : (
-                    <div style={{ textAlign: 'center' }}>
+                    <>
                         <Button
-                            type="primary"
+                            type="text"
                             danger
                             icon={<LogoutOutlined />}
                             onClick={handleLogout}
                             style={{
-                                width: '48px',
-                                height: '48px',
+                                width: '100%',
+                                height: '36px',
                                 display: 'flex',
-                                justifyContent: 'center',
                                 alignItems: 'center',
-                                fontSize: '18px'
+                                justifyContent: 'flex-start',
+                                padding: '0 12px',
+                                fontSize: '14px'
                             }}
-                            title="Logout"
-                            size="large"
-                        />
-                    </div>
+                        >
+                            Logout
+                        </Button>
+                        <AppNewVersionNotifier />
+                    </>
+                ) : (
+                    <Button
+                        type="text"
+                        danger
+                        icon={<LogoutOutlined />}
+                        onClick={handleLogout}
+                        style={{
+                            width: '40px',
+                            height: '40px',
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            fontSize: '16px',
+                            padding: 0
+                        }}
+                        title="Logout"
+                    />
                 )}
             </div>
         </>

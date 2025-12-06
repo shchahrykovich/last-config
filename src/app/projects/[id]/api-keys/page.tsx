@@ -4,12 +4,15 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card, Button, List, message, Modal, Typography, Space, Spin, Empty, Tag, Popconfirm, Input, Dropdown } from 'antd';
 import AppLayout from "@/components/AppLayout";
-import { KeyOutlined, PlusOutlined, DeleteOutlined, ArrowLeftOutlined, CopyOutlined, EyeOutlined, DownOutlined, LockOutlined, UnlockOutlined } from "@ant-design/icons";
+import PageHeader from "@/components/PageHeader";
+import Breadcrumb from "@/components/Breadcrumb";
+import { KeyOutlined, PlusOutlined, DeleteOutlined, ArrowLeftOutlined, CopyOutlined, EyeOutlined, DownOutlined, LockOutlined, UnlockOutlined, ProjectOutlined } from "@ant-design/icons";
 import type {
     GetApiKeysResponseSerialized,
     CreateApiKeyResponseSerialized,
 } from '@/app/api/projects/[id]/api-keys/dto';
 import type { ErrorResponse } from '@/app/api/shared-dto';
+import type { GetProjectByIdResponseSerialized } from '@/app/api/projects/dto';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -27,11 +30,24 @@ const ApiKeysPage = () => {
     const projectId = params.id as string;
 
     const [apiKeys, setApiKeys] = useState<ApiKeyDisplay[]>([]);
+    const [projectName, setProjectName] = useState<string>('');
     const [loading, setLoading] = useState(true);
     const [creating, setCreating] = useState(false);
     const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
     const [newApiKey, setNewApiKey] = useState<{ fullKey: string; public: string } | null>(null);
     const [copySuccess, setCopySuccess] = useState(false);
+
+    const fetchProject = async () => {
+        try {
+            const response = await fetch(`/api/projects/${projectId}`);
+            if (response.ok) {
+                const data: GetProjectByIdResponseSerialized = await response.json();
+                setProjectName(data.project.name);
+            }
+        } catch (error) {
+            console.error('Failed to load project name:', error);
+        }
+    };
 
     const fetchApiKeys = async () => {
         try {
@@ -54,6 +70,7 @@ const ApiKeysPage = () => {
     };
 
     useEffect(() => {
+        fetchProject();
         fetchApiKeys();
     }, [projectId]);
 
@@ -130,7 +147,7 @@ const ApiKeysPage = () => {
 
     if (loading) {
         return (
-            <AppLayout title="API Keys" icon={<KeyOutlined />}>
+            <AppLayout>
                 <div style={{ textAlign: 'center', padding: '100px 0' }}>
                     <Spin size="large" tip="Loading API keys..." />
                 </div>
@@ -139,11 +156,22 @@ const ApiKeysPage = () => {
     }
 
     return (
-        <AppLayout title="API Keys" icon={<KeyOutlined />}>
-            <div style={{ maxWidth: '1200px' }}>
-                <Space direction="vertical" size="large" style={{ width: '100%' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Dropdown
+        <AppLayout>
+            <PageHeader
+                title="API Keys"
+                subtitle="Manage API keys for programmatic access"
+                icon={<KeyOutlined />}
+                breadcrumb={
+                    <Breadcrumb
+                        items={[
+                            { label: 'Projects', href: '/' },
+                            { label: projectName || 'Loading...', href: `/projects/${projectId}`, icon: <ProjectOutlined /> },
+                            { label: 'API Keys' }
+                        ]}
+                    />
+                }
+                actions={
+                    <Dropdown
                             menu={{
                                 items: [
                                     {
@@ -162,11 +190,15 @@ const ApiKeysPage = () => {
                             }}
                             disabled={creating}
                         >
-                            <Button type="primary" icon={<PlusOutlined />} loading={creating}>
+                            <Button type="primary" icon={<PlusOutlined />} loading={creating} size="large">
                                 Generate New API Key <DownOutlined />
                             </Button>
                         </Dropdown>
-                    </div>
+                }
+            />
+
+            <div style={{ maxWidth: '1200px' }}>
+                <Space direction="vertical" size="large" style={{ width: '100%' }}>
 
                     <List
                         grid={{

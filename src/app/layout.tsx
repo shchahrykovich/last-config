@@ -2,6 +2,8 @@ import type {Metadata} from "next";
 import "./globals.css";
 import {AntdRegistry} from '@ant-design/nextjs-registry';
 import {SessionProvider} from "next-auth/react";
+import {ConfigProvider} from 'antd';
+import {lcTheme} from '@/lib/theme';
 
 export const metadata: Metadata = {
     title: "Last Config App",
@@ -20,7 +22,11 @@ export default function RootLayout({
         </head>
         <body>
             <SessionProvider>
-                <AntdRegistry>{children}</AntdRegistry>
+                <AntdRegistry>
+                    <ConfigProvider theme={lcTheme}>
+                        {children}
+                    </ConfigProvider>
+                </AntdRegistry>
             </SessionProvider>
         </body>
         </html>

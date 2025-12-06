@@ -4,6 +4,8 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card, Descriptions, Spin, message, Button, Typography, Space, Row, Col } from 'antd';
 import AppLayout from "@/components/AppLayout";
+import PageHeader from "@/components/PageHeader";
+import Breadcrumb from "@/components/Breadcrumb";
 import { ProjectOutlined, ArrowLeftOutlined, FileTextOutlined, KeyOutlined, RightOutlined } from "@ant-design/icons";
 import type {
     ProjectDtoSerialized,
@@ -47,7 +49,7 @@ const ProjectDetailPage = () => {
 
     if (loading) {
         return (
-            <AppLayout title="Project Details" icon={<ProjectOutlined />}>
+            <AppLayout>
                 <div style={{ textAlign: 'center', padding: '100px 0' }}>
                     <Spin size="large" tip="Loading project..." />
                 </div>
@@ -57,7 +59,20 @@ const ProjectDetailPage = () => {
 
     if (!project) {
         return (
-            <AppLayout title="Project Details" icon={<ProjectOutlined />}>
+            <AppLayout>
+                <PageHeader
+                    title="Project Details"
+                    subtitle="View project information"
+                    icon={<ProjectOutlined />}
+                    breadcrumb={
+                        <Breadcrumb
+                            items={[
+                                { label: 'Projects', href: '/' },
+                                { label: 'Project Details' }
+                            ]}
+                        />
+                    }
+                />
                 <Card>
                     <div style={{ textAlign: 'center', padding: '40px 0' }}>
                         <Text type="secondary">Project not found</Text>
@@ -77,21 +92,24 @@ const ProjectDetailPage = () => {
     }
 
     return (
-        <AppLayout title="Project Details" icon={<ProjectOutlined />}>
+        <AppLayout>
+            <PageHeader
+                title={project.name}
+                subtitle="Project overview and details"
+                icon={<ProjectOutlined />}
+                breadcrumb={
+                    <Breadcrumb
+                        items={[
+                            { label: 'Projects', href: '/' },
+                            { label: project.name }
+                        ]}
+                    />
+                }
+            />
+
             <div style={{ maxWidth: '1200px' }}>
                 <Space direction="vertical" size="large" style={{ width: '100%' }}>
-                    <Button
-                        icon={<ArrowLeftOutlined />}
-                        onClick={() => router.push('/')}
-                    >
-                        Back to Projects
-                    </Button>
-
                     <Card>
-                        <Title level={4} style={{ marginBottom: '24px' }}>
-                            <ProjectOutlined style={{ marginRight: '12px', color: '#1890ff' }} />
-                            {project.name}
-                        </Title>
 
                         <Descriptions bordered column={1}>
                             <Descriptions.Item label="Project ID">

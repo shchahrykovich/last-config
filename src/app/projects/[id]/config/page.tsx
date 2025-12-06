@@ -4,9 +4,11 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { Button, Table, message, Modal, Form, Input, Space, Spin, Popconfirm, Tag, Select, Tabs } from 'antd';
 import AppLayout from "@/components/AppLayout";
+import PageHeader from "@/components/PageHeader";
+import Breadcrumb from "@/components/Breadcrumb";
 import HelpDrawerTitle from '@/components/HelpDrawerTitle';
 import ConfigApiExamples from '@/components/ConfigApiExamples';
-import { SettingOutlined, PlusOutlined, DeleteOutlined, EditOutlined, CopyOutlined, SearchOutlined } from "@ant-design/icons";
+import { SettingOutlined, PlusOutlined, DeleteOutlined, EditOutlined, CopyOutlined, SearchOutlined, ProjectOutlined } from "@ant-design/icons";
 import type { ColumnsType } from 'antd/es/table';
 import type { FilterDropdownProps } from 'antd/es/table/interface';
 import type {
@@ -16,6 +18,7 @@ import type {
     ConfigDtoSerialized,
 } from '@/app/api/projects/[id]/config/dto';
 import type { ErrorResponse } from '@/app/api/shared-dto';
+import type { GetProjectByIdResponseSerialized } from '@/app/api/projects/dto';
 
 interface CreateConfigFormData {
     name: string;
@@ -37,6 +40,7 @@ const ConfigPage = () => {
 
     const [publicConfigs, setPublicConfigs] = useState<ConfigDtoSerialized[]>([]);
     const [secretConfigs, setSecretConfigs] = useState<ConfigDtoSerialized[]>([]);
+    const [projectName, setProjectName] = useState<string>('');
     const [loading, setLoading] = useState(true);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -48,6 +52,18 @@ const ConfigPage = () => {
 
     const [createForm] = Form.useForm<CreateConfigFormData>();
     const [editForm] = Form.useForm<UpdateConfigFormData>();
+
+    const fetchProject = async () => {
+        try {
+            const response = await fetch(`/api/projects/${projectId}`);
+            if (response.ok) {
+                const data: GetProjectByIdResponseSerialized = await response.json();
+                setProjectName(data.project.name);
+            }
+        } catch (error) {
+            console.error('Failed to load project name:', error);
+        }
+    };
 
     const fetchConfigs = async () => {
         try {
@@ -79,6 +95,7 @@ const ConfigPage = () => {
     };
 
     useEffect(() => {
+        fetchProject();
         fetchConfigs();
     }, [projectId]);
 
@@ -424,12 +441,23 @@ const ConfigPage = () => {
 
     return (
         <AppLayout>
-            <div style={{ maxWidth: '1400px' }}>
-                <Space direction="vertical" size="large" style={{ width: '100%' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+            <PageHeader
+                title="Config"
+                subtitle="Manage configuration values for your project"
+                icon={<SettingOutlined />}
+                breadcrumb={
+                    <Breadcrumb
+                        items={[
+                            { label: 'Projects', href: '/' },
+                            { label: projectName || 'Loading...', href: `/projects/${projectId}`, icon: <ProjectOutlined /> },
+                            { label: 'Config' }
+                        ]}
+                    />
+                }
+                actions={
+                    <Space>
                         <HelpDrawerTitle
-                            title="Config"
-                            icon={<SettingOutlined />}
+                            title=""
                             helpTitle="Config API"
                             helpContent={<ConfigApiExamples />}
                         />
@@ -437,10 +465,16 @@ const ConfigPage = () => {
                             type="primary"
                             icon={<PlusOutlined />}
                             onClick={() => setIsCreateModalOpen(true)}
+                            size="large"
                         >
                             Create Config
                         </Button>
-                    </div>
+                    </Space>
+                }
+            />
+
+            <div style={{ maxWidth: '1400px' }}>
+                <Space direction="vertical" size="large" style={{ width: '100%' }}>
 
                     <Tabs
                         activeKey={activeTab}

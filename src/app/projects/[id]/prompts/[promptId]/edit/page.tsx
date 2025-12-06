@@ -4,7 +4,9 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card, Button, Form, Input, message, Spin, Typography, Space } from 'antd';
 import AppLayout from "@/components/AppLayout";
-import { EditOutlined, SaveOutlined } from "@ant-design/icons";
+import PageHeader from "@/components/PageHeader";
+import Breadcrumb from "@/components/Breadcrumb";
+import { EditOutlined, SaveOutlined, FileTextOutlined, ProjectOutlined } from "@ant-design/icons";
 import type {
     PromptDtoSerialized,
     GetPromptByIdResponseSerialized,
@@ -12,6 +14,7 @@ import type {
     UpdatePromptResponseSerialized,
 } from '@/app/api/projects/[id]/prompts/dto';
 import type { ErrorResponse } from '@/app/api/shared-dto';
+import type { GetProjectByIdResponseSerialized } from '@/app/api/projects/dto';
 
 const { Title } = Typography;
 const { TextArea } = Input;
@@ -21,6 +24,7 @@ interface FormValues {
     body: {
         message: string;
         model?: string;
+        responseSchema?: string;
     };
 }
 
@@ -31,9 +35,23 @@ const PromptEditPage = () => {
     const promptId = params.promptId as string;
 
     const [prompt, setPrompt] = useState<PromptDtoSerialized | null>(null);
+    const [projectName, setProjectName] = useState<string>('');
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [form] = Form.useForm<FormValues>();
+
+    const fetchProject = async () => {
+        try {
+            const response = await fetch(`/api/projects/${projectId}`);
+            if (response.ok) {
+                const data: GetProjectByIdResponseSerialized = await response.json();
+                setProjectName(data.project.name);
+            }
+        } catch (error) {
+            console.error('Failed to load project name:', error);
+        }
+    };
+
     const fetchPrompt = async () => {
         try {
             setLoading(true);
@@ -50,12 +68,14 @@ const PromptEditPage = () => {
             // Parse the body JSON
             const parsedBody = JSON.parse(data.prompt.body);
             const parsedModel = typeof parsedBody.model === 'string' ? parsedBody.model : undefined;
+            const parsedResponseSchema = typeof parsedBody.responseSchema === 'string' ? parsedBody.responseSchema : undefined;
 
             form.setFieldsValue({
                 name: data.prompt.name,
                 body: {
                     message: parsedBody.message || '',
                     model: parsedModel,
+                    responseSchema: parsedResponseSchema,
                 },
             });
         } catch (error) {
@@ -67,6 +87,7 @@ const PromptEditPage = () => {
     };
 
     useEffect(() => {
+        fetchProject();
         fetchPrompt();
     }, [projectId, promptId]);
 
@@ -77,6 +98,7 @@ const PromptEditPage = () => {
             const sanitizedBody = {
                 message: values.body.message,
                 model: values.body.model?.trim() ? values.body.model.trim() : undefined,
+                responseSchema: values.body.responseSchema?.trim() ? values.body.responseSchema.trim() : undefined,
             };
 
             const updateData: UpdatePromptRequest = {
@@ -110,7 +132,7 @@ const PromptEditPage = () => {
 
     if (loading) {
         return (
-            <AppLayout title="Edit Prompt" icon={<EditOutlined />}>
+            <AppLayout>
                 <div style={{ textAlign: 'center', padding: '100px 0' }}>
                     <Spin size="large" tip="Loading prompt..." />
                 </div>
@@ -120,7 +142,22 @@ const PromptEditPage = () => {
 
     if (!prompt) {
         return (
-            <AppLayout title="Edit Prompt" icon={<EditOutlined />}>
+            <AppLayout>
+                <PageHeader
+                    title="Edit Prompt"
+                    subtitle="Modify your prompt"
+                    icon={<EditOutlined />}
+                    breadcrumb={
+                        <Breadcrumb
+                            items={[
+                                { label: 'Projects', href: '/' },
+                                { label: projectName || 'Loading...', href: `/projects/${projectId}`, icon: <ProjectOutlined /> },
+                                { label: 'Prompts', href: `/projects/${projectId}/prompts`, icon: <FileTextOutlined /> },
+                                { label: 'Edit' }
+                            ]}
+                        />
+                    }
+                />
                 <Card>
                     <div style={{ textAlign: 'center', padding: '40px 0' }}>
                         <Typography.Text type="secondary">Prompt not found</Typography.Text>
@@ -131,13 +168,26 @@ const PromptEditPage = () => {
     }
 
     return (
-        <AppLayout title="Edit Prompt" icon={<EditOutlined />}>
+        <AppLayout>
+            <PageHeader
+                title="Edit Prompt"
+                subtitle={`Editing: ${prompt.name}`}
+                icon={<EditOutlined />}
+                breadcrumb={
+                    <Breadcrumb
+                        items={[
+                            { label: 'Projects', href: '/' },
+                            { label: projectName || 'Loading...', href: `/projects/${projectId}`, icon: <ProjectOutlined /> },
+                            { label: 'Prompts', href: `/projects/${projectId}/prompts`, icon: <FileTextOutlined /> },
+                            { label: prompt.name }
+                        ]}
+                    />
+                }
+            />
+
             <div style={{ maxWidth: '900px' }}>
                 <Space direction="vertical" size="large" style={{ width: '100%' }}>
                     <Card>
-                        <Title level={4} style={{ marginBottom: '24px' }}>
-                            {prompt.name} ({prompt.id})
-                        </Title>
 
                         <Form
                             form={form}
@@ -162,6 +212,17 @@ const PromptEditPage = () => {
                                 <Input
                                     allowClear
                                     placeholder="Enter a model name"
+                                />
+                            </Form.Item>
+
+                            <Form.Item
+                                label="Response Schema"
+                                name={['body', 'responseSchema']}
+                            >
+                                <TextArea
+                                    allowClear
+                                    rows={4}
+                                    placeholder="Enter response schema (JSON)"
                                 />
                             </Form.Item>
 
