@@ -94,4 +94,20 @@ export class PromptService {
 
         return await this.getPromptById(promptId, tenantId, projectId)
     }
+
+    async deletePrompt(
+        promptId: number,
+        projectId: number,
+        tenantId: number
+    ) {
+        const result = await this.db.prompts.deleteMany({
+            where: {
+                id: promptId,
+                projectId,
+                tenantId
+            }
+        })
+
+        return result.count > 0
+    }
 }

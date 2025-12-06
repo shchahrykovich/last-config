@@ -2,9 +2,23 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Card, Button, List, message, Modal, Form, Input, Typography, Space, Spin, Empty, Tag } from 'antd';
+import {
+    Button,
+    message,
+    Modal,
+    Form,
+    Input,
+    Typography,
+    Space,
+    Spin,
+    Empty,
+    Table,
+    Popconfirm,
+} from 'antd';
 import AppLayout from "@/components/AppLayout";
-import { FileTextOutlined, PlusOutlined, EditOutlined, ArrowLeftOutlined } from "@ant-design/icons";
+import HelpDrawerTitle from '@/components/HelpDrawerTitle';
+import PromptsApiExamples from '@/components/PromptsApiExamples';
+import { FileTextOutlined, PlusOutlined, EditOutlined } from "@ant-design/icons";
 import type {
     PromptDtoSerialized,
     GetPromptsResponseSerialized,
@@ -13,7 +27,7 @@ import type {
 } from '@/app/api/projects/[id]/prompts/dto';
 import type { ErrorResponse } from '@/app/api/shared-dto';
 
-const { Title, Text, Paragraph } = Typography;
+const { Text, Paragraph, Title } = Typography;
 const { TextArea } = Input;
 
 const PromptsPage = () => {
@@ -26,7 +40,7 @@ const PromptsPage = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [creating, setCreating] = useState(false);
     const [form] = Form.useForm<CreatePromptRequest>();
-
+    const [deletingId, setDeletingId] = useState<number | null>(null);
     const fetchPrompts = async () => {
         try {
             setLoading(true);
@@ -54,6 +68,10 @@ const PromptsPage = () => {
     const handleCreatePrompt = async (values: CreatePromptRequest) => {
         try {
             setCreating(true);
+            const sanitizedBody = {
+                message: values.body.message,
+                model: values.body.model?.trim() ? values.body.model.trim() : undefined,
+            };
 
             const response = await fetch(`/api/projects/${projectId}/prompts`, {
                 method: 'POST',
@@ -62,7 +80,7 @@ const PromptsPage = () => {
                 },
                 body: JSON.stringify({
                     name: values.name,
-                    body: values.body,
+                    body: sanitizedBody,
                 }),
             });
 
@@ -93,19 +111,126 @@ const PromptsPage = () => {
         form.resetFields();
     };
 
-    const getMessagePreview = (bodyString: string): string => {
+    const parseBody = (bodyString: string): { message?: string; model?: string } => {
         try {
-            const body = JSON.parse(bodyString);
-            const message = body.message || '';
-            return message.length > 150 ? message.substring(0, 150) + '...' : message;
-        } catch (e) {
-            return 'Invalid format';
+            return JSON.parse(bodyString);
+        } catch {
+            return {};
         }
     };
 
+    const getMessagePreview = (bodyString: string): string => {
+        const body = parseBody(bodyString);
+        const message = body.message || '';
+        return message.length > 150 ? message.substring(0, 150) + '...' : message;
+    };
+
+    const handleDeletePrompt = async (promptId: number) => {
+        try {
+            setDeletingId(promptId);
+            const response = await fetch(`/api/projects/${projectId}/prompts/${promptId}`, {
+                method: 'DELETE',
+            });
+
+            if (!response.ok) {
+                const error: ErrorResponse = await response.json();
+                throw new Error(error.error || 'Failed to delete prompt');
+            }
+
+            const data = await response.json() as { message?: string };
+            message.success(data.message || 'Prompt deleted');
+            setPrompts((prev) => prev.filter((prompt) => prompt.id !== promptId));
+        } catch (error) {
+            message.error(error instanceof Error ? error.message : 'Failed to delete prompt');
+            console.error(error);
+        } finally {
+            setDeletingId(null);
+        }
+    };
+
+    const columns = [
+        {
+            title: 'Id',
+            dataIndex: 'id',
+            key: 'id',
+        },
+        {
+            title: 'Name',
+            dataIndex: 'name',
+            key: 'name',
+            render: (_: string, prompt: PromptDtoSerialized) => (
+                <Space>
+                    <FileTextOutlined style={{ color: '#1890ff' }} />
+                    <Text strong>{prompt.name}</Text>
+                </Space>
+            ),
+        },
+        {
+            title: 'Message Preview',
+            dataIndex: 'body',
+            key: 'body',
+            render: (body: string) => (
+                <Paragraph
+                    type="secondary"
+                    ellipsis={{ rows: 2 }}
+                    style={{ margin: 0 }}
+                >
+                    {getMessagePreview(body)}
+                </Paragraph>
+            ),
+        },
+        {
+            title: 'Model',
+            dataIndex: 'body',
+            key: 'model',
+            width: 180,
+            render: (body: string) => {
+                const parsed = parseBody(body);
+                return parsed.model ? <Text>{parsed.model}</Text> : <Text type="secondary">—</Text>;
+            },
+        },
+        {
+            title: 'Created',
+            dataIndex: 'createdAt',
+            key: 'createdAt',
+            width: 140,
+            render: (value: string) => (
+                <Text type="secondary">{new Date(value).toLocaleDateString()}</Text>
+            ),
+        },
+        {
+            title: 'Actions',
+            key: 'actions',
+            width: 120,
+            render: (_: unknown, prompt: PromptDtoSerialized) => (
+                <Space size="middle">
+                    <Button
+                        type="link"
+                        icon={<EditOutlined />}
+                        onClick={() => router.push(`/projects/${projectId}/prompts/${prompt.id}/edit`)}
+                    >
+                        Edit
+                    </Button>
+                    <Popconfirm
+                        title="Delete prompt"
+                        description="Are you sure you want to delete this prompt?"
+                        okText="Delete"
+                        cancelText="Cancel"
+                        okButtonProps={{ danger: true, loading: deletingId === prompt.id }}
+                        onConfirm={() => handleDeletePrompt(prompt.id)}
+                    >
+                        <Button type="link" danger>
+                            Delete
+                        </Button>
+                    </Popconfirm>
+                </Space>
+            ),
+        },
+    ];
+
     if (loading) {
         return (
-            <AppLayout title="Prompts" icon={<FileTextOutlined />}>
+            <AppLayout>
                 <div style={{ textAlign: 'center', padding: '100px 0' }}>
                     <Spin size="large" tip="Loading prompts..." />
                 </div>
@@ -114,10 +239,16 @@ const PromptsPage = () => {
     }
 
     return (
-        <AppLayout title="Prompts" icon={<FileTextOutlined />}>
+        <AppLayout>
             <div style={{ maxWidth: '1200px' }}>
                 <Space direction="vertical" size="large" style={{ width: '100%' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                        <HelpDrawerTitle
+                            title="Prompts"
+                            icon={<FileTextOutlined />}
+                            helpTitle="Prompt requests"
+                            helpContent={<PromptsApiExamples />}
+                        />
                         <Button
                             type="primary"
                             icon={<PlusOutlined />}
@@ -127,16 +258,11 @@ const PromptsPage = () => {
                         </Button>
                     </div>
 
-                    <List
-                        grid={{
-                            gutter: 16,
-                            xs: 1,
-                            sm: 1,
-                            md: 2,
-                            lg: 2,
-                            xl: 3,
-                            xxl: 3,
-                        }}
+                    <Table
+                        rowKey="id"
+                        columns={columns}
+                        dataSource={prompts}
+                        pagination={false}
                         locale={{
                             emptyText: (
                                 <Empty
@@ -149,42 +275,6 @@ const PromptsPage = () => {
                                 </Empty>
                             )
                         }}
-                        dataSource={prompts}
-                        renderItem={(prompt) => (
-                            <List.Item>
-                                <Card
-                                    hoverable
-                                    style={{ height: '100%' }}
-                                    actions={[
-                                        <Button
-                                            key="edit"
-                                            type="text"
-                                            icon={<EditOutlined />}
-                                            onClick={() => router.push(`/projects/${projectId}/prompts/${prompt.id}/edit`)}
-                                        >
-                                            Edit
-                                        </Button>
-                                    ]}
-                                >
-                                    <div style={{ marginBottom: '12px' }}>
-                                        <Title level={5} style={{ margin: 0, marginBottom: '8px' }}>
-                                            <FileTextOutlined style={{ marginRight: '8px', color: '#1890ff' }} />
-                                            {prompt.name}
-                                        </Title>
-                                    </div>
-                                    <Paragraph
-                                        type="secondary"
-                                        ellipsis={{ rows: 3 }}
-                                        style={{ fontSize: '12px', marginBottom: '12px' }}
-                                    >
-                                        {getMessagePreview(prompt.body)}
-                                    </Paragraph>
-                                    <Text type="secondary" style={{ fontSize: '11px' }}>
-                                        Created {new Date(prompt.createdAt).toLocaleDateString()}
-                                    </Text>
-                                </Card>
-                            </List.Item>
-                        )}
                     />
                 </Space>
 
@@ -210,6 +300,16 @@ const PromptsPage = () => {
                             ]}
                         >
                             <Input placeholder="Enter prompt name" autoFocus />
+                        </Form.Item>
+
+                        <Form.Item
+                            label="Model"
+                            name={['body', 'model']}
+                        >
+                            <Input
+                                allowClear
+                                placeholder="Enter a model name"
+                            />
                         </Form.Item>
 
                         <Form.Item

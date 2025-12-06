@@ -4,6 +4,8 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { Button, Table, message, Modal, Form, Input, Space, Spin, Popconfirm, Tag, Select, Switch } from 'antd';
 import AppLayout from "@/components/AppLayout";
+import HelpDrawerTitle from '@/components/HelpDrawerTitle';
+import FeatureFlagsApiExamples from '@/components/FeatureFlagsApiExamples';
 import { FlagOutlined, PlusOutlined, DeleteOutlined, EditOutlined, CopyOutlined, SearchOutlined } from "@ant-design/icons";
 import type { ColumnsType } from 'antd/es/table';
 import type { FilterDropdownProps } from 'antd/es/table/interface';
@@ -217,7 +219,7 @@ const FeatureFlagsPage = () => {
         confirm();
     };
 
-    const getColumnSearchProps = (dataIndex: string, placeholder: string) => ({
+    const getColumnSearchProps = (dataIndex: string, placeholder: string): ColumnsType<FeatureFlagDtoSerialized>[number] => ({
         filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters }: FilterDropdownProps) => (
             <div style={{ padding: 8 }} onKeyDown={(e) => e.stopPropagation()}>
                 <Input
@@ -250,7 +252,7 @@ const FeatureFlagsPage = () => {
         filterIcon: (filtered: boolean) => (
             <SearchOutlined style={{ color: filtered ? '#1677ff' : undefined }} />
         ),
-        onFilter: (value: string | number | boolean, record: FeatureFlagDtoSerialized) => {
+        onFilter: (value: any, record: FeatureFlagDtoSerialized) => {
             const recordValue = (record as any)[dataIndex];
             return recordValue
                 ? recordValue.toString().toLowerCase().includes(value.toString().toLowerCase())
@@ -399,7 +401,7 @@ const FeatureFlagsPage = () => {
             render: (_, record) => (
                 <Space size="small">
                     <Button
-                        type="text"
+                        type="link"
                         icon={<EditOutlined />}
                         onClick={() => handleOpenEditModal(record)}
                         size="small"
@@ -407,7 +409,7 @@ const FeatureFlagsPage = () => {
                         Edit
                     </Button>
                     <Button
-                        type="text"
+                        type="link"
                         size="small"
                         icon={<CopyOutlined />}
                         onClick={() => handleCopyFeatureFlag(record)}
@@ -423,7 +425,7 @@ const FeatureFlagsPage = () => {
                         okButtonProps={{ danger: true }}
                     >
                         <Button
-                            type="text"
+                            type="link"
                             danger
                             icon={<DeleteOutlined />}
                             size="small"
@@ -438,7 +440,7 @@ const FeatureFlagsPage = () => {
 
     if (loading) {
         return (
-            <AppLayout title="Feature Flags" icon={<FlagOutlined />}>
+            <AppLayout>
                 <div style={{ textAlign: 'center', padding: '100px 0' }}>
                     <Spin size="large" tip="Loading feature flags..." />
                 </div>
@@ -447,10 +449,16 @@ const FeatureFlagsPage = () => {
     }
 
     return (
-        <AppLayout title="Feature Flags" icon={<FlagOutlined />}>
+        <AppLayout>
             <div style={{ maxWidth: '1400px' }}>
                 <Space direction="vertical" size="large" style={{ width: '100%' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                        <HelpDrawerTitle
+                            title="Feature Flags"
+                            icon={<FlagOutlined />}
+                            helpTitle="Feature Flags API"
+                            helpContent={<FeatureFlagsApiExamples />}
+                        />
                         <Button
                             type="primary"
                             icon={<PlusOutlined />}

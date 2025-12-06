@@ -14,7 +14,7 @@ type Params = {
  * Requires API key authentication
  *
  * Usage:
- * curl -H "Authorization: Bearer sk_{public}_{private}" \
+ * curl -H "Authorization: sk_{public}_{private}" \
  *      https://your-domain/api/v1/prompts
  */
 export const GET = secretApiKeyAuthMiddleware(async (context, db, req, { params }: Params) => {

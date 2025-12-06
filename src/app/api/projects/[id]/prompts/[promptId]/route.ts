@@ -2,12 +2,13 @@ import 'server-only'
 
 import { NextResponse } from 'next/server'
 import * as zod from 'zod'
-import {authMiddleware, authMiddlewareForProjects} from '@/infrastructure/middlewares'
+import {authMiddlewareForProjects} from '@/infrastructure/middlewares'
 import { createErrorResponse } from '@/infrastructure/api-requests'
 import {
     UpdatePromptRequestSchema,
     type GetPromptByIdResponse,
-    type UpdatePromptResponse
+    type UpdatePromptResponse,
+    type DeletePromptResponse
 } from '../dto'
 import { PromptService } from '@/services/prompts/prompt-service'
 
@@ -95,5 +96,41 @@ export const PUT = authMiddlewareForProjects(async (currentUser,
         }
 
         return createErrorResponse(error, 'update_prompt_error')
+    }
+})
+
+export const DELETE = authMiddlewareForProjects(async (currentUser,
+                                                       db,
+                                                       req,
+                                                       projectId,
+                                                       {params}: Params) => {
+    try {
+        const { promptId } = await params
+        const promptIdNum = parseInt(promptId, 10)
+
+        if (isNaN(promptIdNum)) {
+            return NextResponse.json(
+                { error: 'Invalid prompt ID' },
+                { status: 400 }
+            )
+        }
+
+        const promptService = new PromptService(db)
+        const prompt = await promptService.getPromptById(promptIdNum, currentUser.tenantId, projectId)
+
+        if (!prompt) {
+            return NextResponse.json(
+                { error: 'Prompt not found' },
+                { status: 404 }
+            )
+        }
+
+        await promptService.deletePrompt(promptIdNum, projectId, currentUser.tenantId)
+
+        return NextResponse.json<DeletePromptResponse>({
+            message: 'Prompt deleted successfully',
+        }, { status: 200 })
+    } catch (error) {
+        return createErrorResponse(error, 'delete_prompt_error')
     }
 })

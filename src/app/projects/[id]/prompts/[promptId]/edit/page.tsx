@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card, Button, Form, Input, message, Spin, Typography, Space } from 'antd';
 import AppLayout from "@/components/AppLayout";
-import { EditOutlined, ArrowLeftOutlined, SaveOutlined } from "@ant-design/icons";
+import { EditOutlined, SaveOutlined } from "@ant-design/icons";
 import type {
     PromptDtoSerialized,
     GetPromptByIdResponseSerialized,
@@ -20,6 +20,7 @@ interface FormValues {
     name: string;
     body: {
         message: string;
+        model?: string;
     };
 }
 
@@ -33,7 +34,6 @@ const PromptEditPage = () => {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [form] = Form.useForm<FormValues>();
-
     const fetchPrompt = async () => {
         try {
             setLoading(true);
@@ -49,11 +49,13 @@ const PromptEditPage = () => {
 
             // Parse the body JSON
             const parsedBody = JSON.parse(data.prompt.body);
+            const parsedModel = typeof parsedBody.model === 'string' ? parsedBody.model : undefined;
 
             form.setFieldsValue({
                 name: data.prompt.name,
                 body: {
                     message: parsedBody.message || '',
+                    model: parsedModel,
                 },
             });
         } catch (error) {
@@ -72,9 +74,14 @@ const PromptEditPage = () => {
         try {
             setSaving(true);
 
+            const sanitizedBody = {
+                message: values.body.message,
+                model: values.body.model?.trim() ? values.body.model.trim() : undefined,
+            };
+
             const updateData: UpdatePromptRequest = {
                 name: values.name,
-                body: values.body,
+                body: sanitizedBody,
             };
 
             const response = await fetch(`/api/projects/${projectId}/prompts/${promptId}`, {
@@ -129,8 +136,7 @@ const PromptEditPage = () => {
                 <Space direction="vertical" size="large" style={{ width: '100%' }}>
                     <Card>
                         <Title level={4} style={{ marginBottom: '24px' }}>
-                            <EditOutlined style={{ marginRight: '12px', color: '#1890ff' }} />
-                            Edit Prompt: {prompt.name}
+                            {prompt.name} ({prompt.id})
                         </Title>
 
                         <Form
@@ -147,6 +153,16 @@ const PromptEditPage = () => {
                                 ]}
                             >
                                 <Input placeholder="Enter prompt name" />
+                            </Form.Item>
+
+                            <Form.Item
+                                label="Model"
+                                name={['body', 'model']}
+                            >
+                                <Input
+                                    allowClear
+                                    placeholder="Enter a model name"
+                                />
                             </Form.Item>
 
                             <Form.Item

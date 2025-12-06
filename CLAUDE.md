@@ -31,8 +31,11 @@ npm run lint             # Run ESLint
 Tests are run using Vitest with Cloudflare Workers pool:
 
 ```bash
-# Run tests (uses @cloudflare/vitest-pool-workers)
-npx vitest
+# Run all tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
 
 # Run specific test file
 npx vitest tests/your-test-file.test.ts
@@ -41,13 +44,170 @@ npx vitest tests/your-test-file.test.ts
 Test configuration is in `vitest.config.ts` with:
 - Global test timeout: 20 seconds
 - File parallelism disabled
-- Single worker mode
+- Isolated worker mode (each test file runs in separate runtime)
 - Uses `wrangler.jsonc` for Cloudflare bindings
+- Integration tests excluded by default (Next.js/OpenNext incompatibilities)
+
+### How to Write Tests
+
+**Prefer End-to-End Tests with Database**
+- Use real database connections with Cloudflare D1 in tests
+- Tests should use `PrismaClient` with D1 adapter to interact with actual database
+- Migrations are automatically applied via `applyMigrations()` helper from `tests/helpers/db-setup.ts`
+- Example pattern:
+```typescript
+import { env } from 'cloudflare:test'
+import { PrismaD1 } from '@prisma/adapter-d1'
+import { PrismaClient } from '@prisma/client'
+import { applyMigrations } from '../helpers/db-setup'
+
+describe('MyService', () => {
+    let db: PrismaClient
+
+    beforeAll(async () => {
+        await applyMigrations()
+        const adapter = new PrismaD1(env.DB)
+        db = new PrismaClient({ adapter })
+    })
+
+    afterAll(async () => {
+        // Cleanup test data
+        await db.$disconnect()
+    })
+})
+```
+
+**CRITICAL: Test Multi-Tenant Leakages**
+Every test for services/APIs that handle tenant data MUST verify tenant isolation:
+- Create data for multiple tenants
+- Verify that queries with one `tenantId` NEVER return data from another tenant
+- Test that users cannot access/modify data from other tenants
+- Example:
+```typescript
+it('should not return data from different tenant', async () => {
+    // Create data for tenant A
+    const tenantA = await db.tenants.create({ data: { isActive: true }})
+    const projectA = await db.projects.create({
+        data: { name: 'Project A', tenantId: tenantA.id }
+    })
+
+    // Create data for tenant B
+    const tenantB = await db.tenants.create({ data: { isActive: true }})
+
+    // Query with tenant B - should NOT see tenant A's data
+    const projects = await service.getProjects(tenantB.id)
+    expect(projects).not.toContainEqual(expect.objectContaining({ id: projectA.id }))
+    expect(projects.length).toBe(0)
+})
+```
+
+**Test Permissions and Access Control**
+- Test that operations properly enforce tenant/project access
+- Test that API key authentication works correctly
+- Test both success and failure cases
+- Example:
+```typescript
+it('should reject access with wrong tenant', async () => {
+    const project = await db.projects.create({
+        data: { name: 'Project', tenantId: tenant1.id }
+    })
+
+    // Try to access with wrong tenant
+    await expect(
+        service.getProject(project.id, tenant2.id)
+    ).rejects.toThrow('Not found')
+})
+
+it('should reject invalid API key', async () => {
+    const response = await middleware(request, { params: Promise.resolve({}) })
+    expect(response.status).toBe(401)
+})
+```
+
+**CRITICAL: Always Verify Database State**
+After performing any operation that modifies data, always verify the database state directly:
+- Query the database to confirm data was properly persisted
+- Check that relationships are correctly established
+- Verify that data isolation is maintained (no leakage between tenants)
+- Confirm that updates/deletes actually affected the database
+- Example:
+```typescript
+it('should create prompt and persist to database', async () => {
+    const prompt = await service.createPrompt({
+        name: 'Test Prompt',
+        body: { role: 'system', content: 'Hello' },
+        projectId,
+        tenantId
+    })
+
+    // Verify in database
+    const dbPrompt = await db.prompts.findUnique({
+        where: { id: prompt.id }
+    })
+    expect(dbPrompt).not.toBeNull()
+    expect(dbPrompt?.name).toBe('Test Prompt')
+    expect(dbPrompt?.tenantId).toBe(tenantId)
+    expect(JSON.parse(dbPrompt?.body || '{}')).toEqual({
+        role: 'system',
+        content: 'Hello'
+    })
+})
+
+it('should update user and reflect in database', async () => {
+    const user = await service.createUser({
+        email: 'test@example.com',
+        password: 'password',
+        tenantId
+    })
+
+    await service.updateUser(user.id, tenantId, {
+        name: 'Updated Name'
+    })
+
+    // Verify the update persisted
+    const dbUser = await db.user.findUnique({
+        where: { id: user.id }
+    })
+    expect(dbUser?.name).toBe('Updated Name')
+})
+
+it('should delete record from database', async () => {
+    const project = await service.createProject({
+        name: 'To Delete',
+        tenantId
+    })
+
+    await service.deleteProject(project.id, tenantId)
+
+    // Verify deletion in database
+    const dbProject = await db.projects.findUnique({
+        where: { id: project.id }
+    })
+    expect(dbProject).toBeNull()
+})
+```
+
+**Test Organization**
+- Place tests in `tests/` directory mirroring `src/` structure
+- Service tests: `tests/services/[service-name]/[service-name].test.ts`
+- Infrastructure tests: `tests/infrastructure/[file-name].test.ts`
+- Lib tests: `tests/lib/[file-name].test.ts`
+
+**Test Cleanup**
+- Always clean up test data in `afterAll` hooks
+- Delete in reverse dependency order (child records before parent records)
+- Use `deleteMany` with `tenantId` filter for efficient cleanup
+
+**Current Test Coverage**
+- 143 tests across 12 test files
+- Services: api-keys, config, feature-flags, projects, prompts, tenants, users, value-parser
+- Infrastructure: api-requests, logging, middlewares
+- Lib: utils
 
 ## Architecture
 
 ### Deployment Stack
-- **Next.js 15** with React 19, App Router
+- **Next.js 16** with React 19, App Router
 - **@opennextjs/cloudflare** for deploying Next.js to Cloudflare Workers
 - **Cloudflare D1** (SQLite) as database
 - **Wrangler** for Cloudflare deployment configuration

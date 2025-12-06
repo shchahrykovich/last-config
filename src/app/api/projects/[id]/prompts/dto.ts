@@ -6,7 +6,10 @@ import * as zod from 'zod'
 
 export const PromptBodySchema = zod.object({
     message: zod.string(),
-})
+    model: zod.string().min(1, {
+        message: 'Model cannot be empty',
+    }).optional(),
+}).passthrough()
 
 export type PromptBody = zod.infer<typeof PromptBodySchema>
 
@@ -73,6 +76,12 @@ export const UpdatePromptResponseSchema = zod.object({
 })
 
 export type UpdatePromptResponse = zod.infer<typeof UpdatePromptResponseSchema>
+
+export const DeletePromptResponseSchema = zod.object({
+    message: zod.string(),
+})
+
+export type DeletePromptResponse = zod.infer<typeof DeletePromptResponseSchema>
 
 // ============================================================================
 // Client-Side Serialized Types (for use in client components)

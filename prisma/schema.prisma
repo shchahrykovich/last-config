@@ -42,7 +42,7 @@ model ApiKeys {
   updatedAt DateTime @updatedAt
   isPublic  Boolean  @default(false)
 
-  @@index([public])
+  @@unique([public])
   @@index([tenantId, projectId])
 }
 

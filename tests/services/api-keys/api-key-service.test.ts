@@ -4,6 +4,7 @@ import { PrismaD1 } from '@prisma/adapter-d1'
 import { PrismaClient } from '@prisma/client'
 import { ApiKeyService } from '@/services/api-keys/api-key-service'
 import * as bcrypt from 'bcryptjs'
+import { applyMigrations } from '../../helpers/db-setup'
 
 describe('ApiKeyService', () => {
     let db: PrismaClient
@@ -12,6 +13,9 @@ describe('ApiKeyService', () => {
     let projectId: number
 
     beforeAll(async () => {
+        // Apply database migrations
+        await applyMigrations()
+
         // Initialize Prisma with D1 adapter
         const adapter = new PrismaD1(env.DB)
         db = new PrismaClient({ adapter })
@@ -279,6 +283,76 @@ describe('ApiKeyService', () => {
         it('should return false for non-existent API key', async () => {
             const deleted = await apiKeyService.deleteApiKey(99999, tenantId)
             expect(deleted).toBe(false)
+        })
+    })
+
+    describe('unique constraint on public key', () => {
+        it('should not allow creating two API keys with the same public part', async () => {
+            // Create first API key
+            const { apiKey: firstKey } = await apiKeyService.createApiKey({
+                projectId,
+                tenantId,
+            })
+
+            // Try to create another API key with the same public part
+            // We need to directly insert into DB to test the constraint
+            const hashedPrivate = await bcrypt.hash('some_private_key', 10)
+
+            await expect(
+                db.apiKeys.create({
+                    data: {
+                        tenantId,
+                        projectId,
+                        public: firstKey.public, // Same public part
+                        private: hashedPrivate,
+                        type: 'secret',
+                    }
+                })
+            ).rejects.toThrow()
+        })
+
+        it('should verify database has unique index on public field', async () => {
+            // Query SQLite schema to verify unique index exists
+            const indexInfo = await db.$queryRaw<Array<{ name: string }>>`
+                SELECT name FROM sqlite_master
+                WHERE type = 'index'
+                AND tbl_name = 'ApiKeys'
+                AND sql LIKE '%UNIQUE%public%'
+            ` as Array<{ name: string }>
+
+            expect(indexInfo.length).toBeGreaterThan(0)
+            expect(indexInfo.some(idx => idx.name.includes('public'))).toBe(true)
+        })
+
+        it('should verify unique constraint is enforced in database', async () => {
+            // Create an API key
+            const { apiKey } = await apiKeyService.createApiKey({
+                projectId,
+                tenantId,
+            })
+
+            // Verify we can query it
+            const found = await db.apiKeys.findUnique({
+                where: { public: apiKey.public }
+            })
+
+            expect(found).not.toBeNull()
+            expect(found?.public).toBe(apiKey.public)
+
+            // Try to create a duplicate directly via Prisma
+            const hashedPrivate = await bcrypt.hash('different_private_key', 10)
+
+            await expect(
+                db.apiKeys.create({
+                    data: {
+                        tenantId,
+                        projectId,
+                        public: apiKey.public, // Duplicate public key
+                        private: hashedPrivate,
+                        type: 'secret',
+                    }
+                })
+            ).rejects.toThrow(/unique/i)
         })
     })
 })

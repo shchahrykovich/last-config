@@ -64,12 +64,6 @@ const getProjectMenuItems = (projectId: string | null): MenuItem[] => {
                     path: `/projects/${projectId}/feature-flags`,
                 },
                 {
-                    key: '1-3',
-                    icon: <KeyOutlined />,
-                    label: 'API Keys',
-                    path: `/projects/${projectId}/api-keys`,
-                },
-                {
                     key: '1-4',
                     icon: <SettingOutlined />,
                     label: 'Config',
@@ -80,6 +74,12 @@ const getProjectMenuItems = (projectId: string | null): MenuItem[] => {
                     icon: <DatabaseOutlined />,
                     label: 'Prompts',
                     path: `/projects/${projectId}/prompts`,
+                },
+                {
+                    key: '1-3',
+                    icon: <KeyOutlined />,
+                    label: 'API Keys',
+                    path: `/projects/${projectId}/api-keys`,
                 },
             ],
         },

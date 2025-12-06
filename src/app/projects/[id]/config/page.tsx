@@ -4,6 +4,8 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { Button, Table, message, Modal, Form, Input, Space, Spin, Popconfirm, Tag, Select, Tabs } from 'antd';
 import AppLayout from "@/components/AppLayout";
+import HelpDrawerTitle from '@/components/HelpDrawerTitle';
+import ConfigApiExamples from '@/components/ConfigApiExamples';
 import { SettingOutlined, PlusOutlined, DeleteOutlined, EditOutlined, CopyOutlined, SearchOutlined } from "@ant-design/icons";
 import type { ColumnsType } from 'antd/es/table';
 import type { FilterDropdownProps } from 'antd/es/table/interface';
@@ -229,7 +231,7 @@ const ConfigPage = () => {
         confirm();
     };
 
-    const getColumnSearchProps = (dataIndex: string, placeholder: string) => ({
+    const getColumnSearchProps = (dataIndex: string, placeholder: string): ColumnsType<ConfigDtoSerialized>[number] => ({
         filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters }: FilterDropdownProps) => (
             <div style={{ padding: 8 }} onKeyDown={(e) => e.stopPropagation()}>
                 <Input
@@ -262,7 +264,7 @@ const ConfigPage = () => {
         filterIcon: (filtered: boolean) => (
             <SearchOutlined style={{ color: filtered ? '#1677ff' : undefined }} />
         ),
-        onFilter: (value: string | number | boolean, record: ConfigDtoSerialized) => {
+        onFilter: (value: any, record: ConfigDtoSerialized): boolean => {
             const recordValue = (record as any)[dataIndex];
             return recordValue
                 ? recordValue.toString().toLowerCase().includes(value.toString().toLowerCase())
@@ -346,7 +348,7 @@ const ConfigPage = () => {
             render: (_, record) => (
                 <Space size="small">
                     <Button
-                        type="text"
+                        type="link"
                         icon={<EditOutlined />}
                         onClick={() => handleOpenEditModal(record)}
                         size="small"
@@ -354,7 +356,7 @@ const ConfigPage = () => {
                         Edit
                     </Button>
                     <Button
-                        type="text"
+                        type="link"
                         size="small"
                         icon={<CopyOutlined />}
                         onClick={() => handleCopyConfig(record)}
@@ -370,7 +372,7 @@ const ConfigPage = () => {
                         okButtonProps={{ danger: true }}
                     >
                         <Button
-                            type="text"
+                            type="link"
                             danger
                             icon={<DeleteOutlined />}
                             size="small"
@@ -412,7 +414,7 @@ const ConfigPage = () => {
 
     if (loading) {
         return (
-            <AppLayout title="Config" icon={<SettingOutlined />}>
+            <AppLayout>
                 <div style={{ textAlign: 'center', padding: '100px 0' }}>
                     <Spin size="large" tip="Loading configs..." />
                 </div>
@@ -421,10 +423,16 @@ const ConfigPage = () => {
     }
 
     return (
-        <AppLayout title="Config" icon={<SettingOutlined />}>
+        <AppLayout>
             <div style={{ maxWidth: '1400px' }}>
                 <Space direction="vertical" size="large" style={{ width: '100%' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                        <HelpDrawerTitle
+                            title="Config"
+                            icon={<SettingOutlined />}
+                            helpTitle="Config API"
+                            helpContent={<ConfigApiExamples />}
+                        />
                         <Button
                             type="primary"
                             icon={<PlusOutlined />}

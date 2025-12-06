@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { Button, Card, Form, Input, List, message, Modal, Spin, Typography, Empty } from 'antd';
 import AppLayout from "@/components/AppLayout";
-import { HomeOutlined, PlusOutlined, ProjectOutlined } from "@ant-design/icons";
+import { PlusOutlined, ProjectOutlined } from "@ant-design/icons";
 import { useRouter } from 'next/navigation';
 import type {
     ProjectDtoSerialized,
@@ -101,7 +101,7 @@ const Home = () => {
 
                 {loading ? (
                     <div style={{ textAlign: 'center', padding: '100px 0' }}>
-                        <Spin size="large" tip="Loading projects..." />
+                        <Spin size="large" />
                     </div>
                 ) : (
                     <List

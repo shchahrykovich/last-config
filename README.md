@@ -42,7 +42,7 @@ A multi-tenant configuration management platform for feature flags, prompts libr
 Verify API key authentication:
 
 ```bash
-curl -H "Authorization: Bearer sk_{public}_{private}" \
+curl -H "Authorization: sk_{public}_{private}" \
   https://your-domain.com/api/v1/health
 ```
 
@@ -59,15 +59,15 @@ Retrieve feature flags with full access using a secret API key:
 
 ```bash
 # Single flag
-curl -H "Authorization: Bearer sk_{public}_{private}" \
+curl -H "Authorization: sk_{public}_{private}" \
   "https://your-domain.com/api/v1/feature-flags?names=dark_mode"
 
 # Multiple flags (comma-separated)
-curl -H "Authorization: Bearer sk_{public}_{private}" \
+curl -H "Authorization: sk_{public}_{private}" \
   "https://your-domain.com/api/v1/feature-flags?names=dark_mode,new_ui,max_users"
 
 # With user context for priority-based evaluation
-curl -H "Authorization: Bearer sk_{public}_{private}" \
+curl -H "Authorization: sk_{public}_{private}" \
   "https://your-domain.com/api/v1/feature-flags?names=dark_mode&userId=user123&userRole=admin"
 ```
 
@@ -117,7 +117,7 @@ Response:
 Retrieve all prompts for the project:
 
 ```bash
-curl -H "Authorization: Bearer sk_{public}_{private}" \
+curl -H "Authorization: sk_{public}_{private}" \
   https://your-domain.com/api/v1/prompts
 ```
 
@@ -145,7 +145,7 @@ Response:
 Retrieve a specific prompt:
 
 ```bash
-curl -H "Authorization: Bearer sk_{public}_{private}" \
+curl -H "Authorization: sk_{public}_{private}" \
   https://your-domain.com/api/v1/prompts/123
 ```
 

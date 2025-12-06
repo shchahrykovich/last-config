@@ -123,7 +123,7 @@ export type ApiKeyAuthHandler<T, P = unknown> = (
 
 /**
  * Middleware for API key authentication
- * Expects Authorization header with format: Bearer sk_{public}_{private}
+ * Expects Authorization header with format: sk_{public}_{private}
  */
 export function secretApiKeyAuthMiddleware<T, P>(handler: ApiKeyAuthHandler<T, P>) {
     return async (req: NextRequest, {params}: { params: Promise<P> }) => {
