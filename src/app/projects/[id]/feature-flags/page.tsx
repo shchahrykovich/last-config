@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { Button, Table, message, Modal, Form, Input, Space, Spin, Popconfirm, Tag, Select, Switch } from 'antd';
+import { Button, Table, message, Modal, Form, Input, Space, Spin, Popconfirm, Tag, Select, Tabs } from 'antd';
 import AppLayout from "@/components/AppLayout";
 import PageHeader from "@/components/PageHeader";
 import Breadcrumb from "@/components/Breadcrumb";
@@ -46,7 +46,8 @@ const FeatureFlagsPage = () => {
     const params = useParams();
     const projectId = params.id as string;
 
-    const [featureFlags, setFeatureFlags] = useState<FeatureFlagDtoSerialized[]>([]);
+    const [publicFeatureFlags, setPublicFeatureFlags] = useState<FeatureFlagDtoSerialized[]>([]);
+    const [secretFeatureFlags, setSecretFeatureFlags] = useState<FeatureFlagDtoSerialized[]>([]);
     const [projectName, setProjectName] = useState<string>('');
     const [loading, setLoading] = useState(true);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -55,6 +56,7 @@ const FeatureFlagsPage = () => {
     const [submitting, setSubmitting] = useState(false);
     const [searchText, setSearchText] = useState('');
     const [searchedColumn, setSearchedColumn] = useState('');
+    const [activeTab, setActiveTab] = useState('secret');
 
     const [createForm] = Form.useForm<CreateFeatureFlagFormData>();
     const [editForm] = Form.useForm<UpdateFeatureFlagFormData>();
@@ -82,7 +84,13 @@ const FeatureFlagsPage = () => {
             }
 
             const data: GetFeatureFlagsResponseSerialized = await response.json();
-            setFeatureFlags(data.featureFlags);
+
+            // Split feature flags into public and secret
+            const publicFlags = data.featureFlags.filter(f => f.isPublic);
+            const secretFlags = data.featureFlags.filter(f => !f.isPublic);
+
+            setPublicFeatureFlags(publicFlags);
+            setSecretFeatureFlags(secretFlags);
         } catch (error) {
             message.error('Failed to load feature flags');
             console.error(error);
@@ -100,12 +108,13 @@ const FeatureFlagsPage = () => {
         try {
             setSubmitting(true);
 
+            const isPublic = activeTab === 'public';
             const response = await fetch(`/api/projects/${projectId}/feature-flags`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(values),
+                body: JSON.stringify({ ...values, isPublic }),
             });
 
             if (!response.ok) {
@@ -116,7 +125,12 @@ const FeatureFlagsPage = () => {
             const data: CreateFeatureFlagResponseSerialized = await response.json();
             message.success(data.message);
 
-            setFeatureFlags([data.featureFlag, ...featureFlags]);
+            if (isPublic) {
+                setPublicFeatureFlags([data.featureFlag, ...publicFeatureFlags]);
+            } else {
+                setSecretFeatureFlags([data.featureFlag, ...secretFeatureFlags]);
+            }
+
             setIsCreateModalOpen(false);
             createForm.resetFields();
         } catch (error) {
@@ -149,7 +163,12 @@ const FeatureFlagsPage = () => {
             const data: UpdateFeatureFlagResponseSerialized = await response.json();
             message.success(data.message);
 
-            setFeatureFlags(featureFlags.map(f => f.id === editingFlag.id ? data.featureFlag : f));
+            if (editingFlag.isPublic) {
+                setPublicFeatureFlags(publicFeatureFlags.map(f => f.id === editingFlag.id ? data.featureFlag : f));
+            } else {
+                setSecretFeatureFlags(secretFeatureFlags.map(f => f.id === editingFlag.id ? data.featureFlag : f));
+            }
+
             setIsEditModalOpen(false);
             setEditingFlag(null);
             editForm.resetFields();
@@ -161,9 +180,9 @@ const FeatureFlagsPage = () => {
         }
     };
 
-    const handleDeleteFeatureFlag = async (featureFlagId: number) => {
+    const handleDeleteFeatureFlag = async (flag: FeatureFlagDtoSerialized) => {
         try {
-            const response = await fetch(`/api/projects/${projectId}/feature-flags/${featureFlagId}`, {
+            const response = await fetch(`/api/projects/${projectId}/feature-flags/${flag.id}`, {
                 method: 'DELETE',
             });
 
@@ -173,7 +192,12 @@ const FeatureFlagsPage = () => {
             }
 
             message.success('Feature flag deleted successfully');
-            setFeatureFlags(featureFlags.filter(f => f.id !== featureFlagId));
+
+            if (flag.isPublic) {
+                setPublicFeatureFlags(publicFeatureFlags.filter(f => f.id !== flag.id));
+            } else {
+                setSecretFeatureFlags(secretFeatureFlags.filter(f => f.id !== flag.id));
+            }
         } catch (error) {
             message.error(error instanceof Error ? error.message : 'Failed to delete feature flag');
             console.error(error);
@@ -190,7 +214,6 @@ const FeatureFlagsPage = () => {
             userId: flag.userId || '',
             userRole: flag.userRole || '',
             userAccountId: flag.userAccountId || '',
-            isPublic: flag.isPublic || false,
         });
         setIsEditModalOpen(true);
     };
@@ -215,8 +238,8 @@ const FeatureFlagsPage = () => {
             userId: flag.userId || '',
             userRole: flag.userRole || '',
             userAccountId: flag.userAccountId || '',
-            isPublic: flag.isPublic || false,
         });
+        setActiveTab(flag.isPublic ? 'public' : 'secret');
         setIsCreateModalOpen(true);
     };
 
@@ -340,23 +363,6 @@ const FeatureFlagsPage = () => {
             },
         },
         {
-            title: 'Public',
-            dataIndex: 'isPublic',
-            key: 'isPublic',
-            width: 100,
-            filters: [
-                { text: 'Public', value: true },
-                { text: 'Private', value: false },
-            ],
-            onFilter: (value, record) => record.isPublic === value,
-            sorter: (a, b) => Number(a.isPublic) - Number(b.isPublic),
-            render: (isPublic: boolean) => (
-                <Tag color={isPublic ? 'green' : 'default'}>
-                    {isPublic ? 'Public' : 'Private'}
-                </Tag>
-            ),
-        },
-        {
             title: 'User ID',
             dataIndex: 'userId',
             key: 'userId',
@@ -436,7 +442,7 @@ const FeatureFlagsPage = () => {
                     <Popconfirm
                         title="Delete Feature Flag"
                         description="Are you sure you want to delete this feature flag?"
-                        onConfirm={() => handleDeleteFeatureFlag(record.id)}
+                        onConfirm={() => handleDeleteFeatureFlag(record)}
                         okText="Yes, delete"
                         cancelText="Cancel"
                         okButtonProps={{ danger: true }}
@@ -454,6 +460,33 @@ const FeatureFlagsPage = () => {
             ),
         },
     ];
+
+    const renderTable = (featureFlags: FeatureFlagDtoSerialized[], type: string) => (
+        <Table
+            columns={columns}
+            dataSource={featureFlags}
+            rowKey="id"
+            pagination={{
+                pageSize: 10,
+                showSizeChanger: true,
+                showTotal: (total) => `Total ${total} feature flags`,
+            }}
+            locale={{
+                emptyText: (
+                    <div style={{ padding: '40px 0' }}>
+                        <p style={{ color: '#999', marginBottom: '16px' }}>No {type} feature flags yet</p>
+                        <Button
+                            type="primary"
+                            icon={<PlusOutlined />}
+                            onClick={() => setIsCreateModalOpen(true)}
+                        >
+                            Create your first {type} feature flag
+                        </Button>
+                    </div>
+                )
+            }}
+        />
+    );
 
     if (loading) {
         return (
@@ -502,35 +535,27 @@ const FeatureFlagsPage = () => {
             <div style={{ maxWidth: '1400px' }}>
                 <Space direction="vertical" size="large" style={{ width: '100%' }}>
 
-                    <Table
-                        columns={columns}
-                        dataSource={featureFlags}
-                        rowKey="id"
-                        pagination={{
-                            pageSize: 10,
-                            showSizeChanger: true,
-                            showTotal: (total) => `Total ${total} feature flags`,
-                        }}
-                        locale={{
-                            emptyText: (
-                                <div style={{ padding: '40px 0' }}>
-                                    <p style={{ color: '#999', marginBottom: '16px' }}>No feature flags yet</p>
-                                    <Button
-                                        type="primary"
-                                        icon={<PlusOutlined />}
-                                        onClick={() => setIsCreateModalOpen(true)}
-                                    >
-                                        Create your first feature flag
-                                    </Button>
-                                </div>
-                            )
-                        }}
+                    <Tabs
+                        activeKey={activeTab}
+                        onChange={setActiveTab}
+                        items={[
+                            {
+                                key: 'secret',
+                                label: `Secret (${secretFeatureFlags.length})`,
+                                children: renderTable(secretFeatureFlags, 'secret'),
+                            },
+                            {
+                                key: 'public',
+                                label: `Public (${publicFeatureFlags.length})`,
+                                children: renderTable(publicFeatureFlags, 'public'),
+                            },
+                        ]}
                     />
                 </Space>
 
                 {/* Create Feature Flag Modal */}
                 <Modal
-                    title="Create Feature Flag"
+                    title={`Create ${activeTab === 'public' ? 'Public' : 'Secret'} Feature Flag`}
                     open={isCreateModalOpen}
                     onCancel={handleCloseCreateModal}
                     footer={null}
@@ -540,7 +565,7 @@ const FeatureFlagsPage = () => {
                         form={createForm}
                         layout="vertical"
                         onFinish={handleCreateFeatureFlag}
-                        initialValues={{ type: 'string', isPublic: false }}
+                        initialValues={{ type: 'string' }}
                     >
                         <Form.Item
                             label="Name"
@@ -582,16 +607,6 @@ const FeatureFlagsPage = () => {
                         </Form.Item>
 
                         <Form.Item
-                            label="Public"
-                            name="isPublic"
-                            help="Make this feature flag publicly accessible"
-                            valuePropName="checked"
-                            initialValue={false}
-                        >
-                            <Switch />
-                        </Form.Item>
-
-                        <Form.Item
                             label="User ID (Optional)"
                             name="userId"
                             help="Target specific user by ID"
@@ -612,17 +627,13 @@ const FeatureFlagsPage = () => {
                                     label="User Role (Optional)"
                                     name="userRole"
                                     help="Target users by role (e.g., admin, user). Cannot be used with User ID."
-                                    dependencies={['userId', 'userAccountId']}
+                                    dependencies={['userId']}
                                     rules={[
                                         ({ getFieldValue }) => ({
                                             validator(_, value) {
                                                 const userId = getFieldValue('userId');
                                                 if (userId && value) {
                                                     return Promise.reject(new Error('User Role cannot be used when User ID is specified'));
-                                                }
-                                                const userAccountId = getFieldValue('userAccountId');
-                                                if (userAccountId && !value && !userId) {
-                                                    return Promise.reject(new Error('User Role is required when User Account ID is provided'));
                                                 }
                                                 return Promise.resolve();
                                             },
@@ -640,20 +651,7 @@ const FeatureFlagsPage = () => {
                         <Form.Item
                             label="User Account ID (Optional)"
                             name="userAccountId"
-                            help="Target specific account. Can be used with User ID or User Role."
-                            dependencies={['userId', 'userRole']}
-                            rules={[
-                                ({ getFieldValue }) => ({
-                                    validator(_, value) {
-                                        const userRole = getFieldValue('userRole');
-                                        const userId = getFieldValue('userId');
-                                        if (userRole && !value && !userId) {
-                                            return Promise.reject(new Error('User Account ID is required when User Role is provided'));
-                                        }
-                                        return Promise.resolve();
-                                    },
-                                }),
-                            ]}
+                            help="Target specific account. Can be used alone or with User ID or User Role."
                         >
                             <Input placeholder="Optional account ID" />
                         </Form.Item>
@@ -724,15 +722,6 @@ const FeatureFlagsPage = () => {
                         </Form.Item>
 
                         <Form.Item
-                            label="Public"
-                            name="isPublic"
-                            help="Make this feature flag publicly accessible"
-                            valuePropName="checked"
-                        >
-                            <Switch />
-                        </Form.Item>
-
-                        <Form.Item
                             label="User ID (Optional)"
                             name="userId"
                             help="Target specific user by ID"
@@ -753,17 +742,13 @@ const FeatureFlagsPage = () => {
                                     label="User Role (Optional)"
                                     name="userRole"
                                     help="Target users by role (e.g., admin, user). Cannot be used with User ID."
-                                    dependencies={['userId', 'userAccountId']}
+                                    dependencies={['userId']}
                                     rules={[
                                         ({ getFieldValue }) => ({
                                             validator(_, value) {
                                                 const userId = getFieldValue('userId');
                                                 if (userId && value) {
                                                     return Promise.reject(new Error('User Role cannot be used when User ID is specified'));
-                                                }
-                                                const userAccountId = getFieldValue('userAccountId');
-                                                if (userAccountId && !value && !userId) {
-                                                    return Promise.reject(new Error('User Role is required when User Account ID is provided'));
                                                 }
                                                 return Promise.resolve();
                                             },
@@ -781,20 +766,7 @@ const FeatureFlagsPage = () => {
                         <Form.Item
                             label="User Account ID (Optional)"
                             name="userAccountId"
-                            help="Target specific account. Can be used with User ID or User Role."
-                            dependencies={['userId', 'userRole']}
-                            rules={[
-                                ({ getFieldValue }) => ({
-                                    validator(_, value) {
-                                        const userRole = getFieldValue('userRole');
-                                        const userId = getFieldValue('userId');
-                                        if (userRole && !value && !userId) {
-                                            return Promise.reject(new Error('User Account ID is required when User Role is provided'));
-                                        }
-                                        return Promise.resolve();
-                                    },
-                                }),
-                            ]}
+                            help="Target specific account. Can be used alone or with User ID or User Role."
                         >
                             <Input placeholder="Optional account ID" />
                         </Form.Item>

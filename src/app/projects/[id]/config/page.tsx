@@ -48,7 +48,7 @@ const ConfigPage = () => {
     const [submitting, setSubmitting] = useState(false);
     const [searchText, setSearchText] = useState('');
     const [searchedColumn, setSearchedColumn] = useState('');
-    const [activeTab, setActiveTab] = useState('public');
+    const [activeTab, setActiveTab] = useState('secret');
 
     const [createForm] = Form.useForm<CreateConfigFormData>();
     const [editForm] = Form.useForm<UpdateConfigFormData>();
@@ -481,14 +481,14 @@ const ConfigPage = () => {
                         onChange={setActiveTab}
                         items={[
                             {
-                                key: 'public',
-                                label: `Public (${publicConfigs.length})`,
-                                children: renderTable(publicConfigs, 'public'),
-                            },
-                            {
                                 key: 'secret',
                                 label: `Secret (${secretConfigs.length})`,
                                 children: renderTable(secretConfigs, 'secret'),
+                            },
+                            {
+                                key: 'public',
+                                label: `Public (${publicConfigs.length})`,
+                                children: renderTable(publicConfigs, 'public'),
                             },
                         ]}
                     />
