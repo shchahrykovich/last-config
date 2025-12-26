@@ -40,7 +40,8 @@ describe('PromptService', () => {
         it('should create a prompt with JSON body', async () => {
             const body = {
                 model: 'gpt-4',
-                message: 'You are a helpful assistant.',
+                systemMessage: 'You are a helpful assistant.',
+                userMessage: 'How can I help you?',
             }
 
             const prompt = await promptService.createPrompt({
@@ -59,9 +60,9 @@ describe('PromptService', () => {
             expect(JSON.parse(prompt.body)).toEqual(body)
         })
 
-        it('should allow creating a prompt without a model', async () => {
+        it('should allow creating a prompt without system message and model', async () => {
             const body = {
-                message: 'Plain text prompt without model',
+                userMessage: 'Plain text prompt without model',
             }
 
             const prompt = await promptService.createPrompt({
@@ -79,7 +80,7 @@ describe('PromptService', () => {
         it('should retrieve all prompts for a project', async () => {
             await promptService.createPrompt({
                 name: 'List Prompt 1',
-                body: { test: 'data1' },
+                body: { userMessage: 'Test user message', test: 'data1' },
                 projectId,
                 tenantId
             })
@@ -96,12 +97,12 @@ describe('PromptService', () => {
         it('should update prompt name and body', async () => {
             const prompt = await promptService.createPrompt({
                 name: 'Update Prompt',
-                body: { message: 'Original', model: 'gpt-3.5-turbo' },
+                body: { userMessage: 'Original', systemMessage: 'System', model: 'gpt-3.5-turbo' },
                 projectId,
                 tenantId
             })
 
-            const newBody = { message: 'Updated', model: 'gpt-4' }
+            const newBody = { userMessage: 'Updated', systemMessage: 'New System', model: 'gpt-4' }
             const updated = await promptService.updatePrompt(
                 prompt.id,
                 projectId,
@@ -114,10 +115,10 @@ describe('PromptService', () => {
             expect(JSON.parse(updated!.body)).toEqual(newBody)
         })
 
-        it('should remove model when it is omitted on update', async () => {
+        it('should remove model and system message when they are omitted on update', async () => {
             const prompt = await promptService.createPrompt({
                 name: 'Model Removal',
-                body: { message: 'Has model', model: 'gpt-4' },
+                body: { userMessage: 'Has model', systemMessage: 'System', model: 'gpt-4' },
                 projectId,
                 tenantId
             })
@@ -126,11 +127,11 @@ describe('PromptService', () => {
                 prompt.id,
                 projectId,
                 tenantId,
-                { body: { message: 'No model now' } }
+                { body: { userMessage: 'No model now' } }
             )
 
             expect(updated).toBeDefined()
-            expect(JSON.parse(updated!.body)).toEqual({ message: 'No model now' })
+            expect(JSON.parse(updated!.body)).toEqual({ userMessage: 'No model now' })
         })
 
         it('should return null for non-existent prompt', async () => {
@@ -149,7 +150,7 @@ describe('PromptService', () => {
         it('should delete an existing prompt', async () => {
             const prompt = await promptService.createPrompt({
                 name: 'Delete Me',
-                body: { message: 'To be removed' },
+                body: { userMessage: 'To be removed' },
                 projectId,
                 tenantId
             })

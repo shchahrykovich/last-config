@@ -87,7 +87,8 @@ const PromptsPage = () => {
         try {
             setCreating(true);
             const sanitizedBody = {
-                message: values.body.message,
+                systemMessage: values.body.systemMessage?.trim() ? values.body.systemMessage.trim() : undefined,
+                userMessage: values.body.userMessage,
                 model: values.body.model?.trim() ? values.body.model.trim() : undefined,
                 responseSchema: values.body.responseSchema?.trim() ? values.body.responseSchema.trim() : undefined,
             };
@@ -130,7 +131,7 @@ const PromptsPage = () => {
         form.resetFields();
     };
 
-    const parseBody = (bodyString: string): { message?: string; model?: string } => {
+    const parseBody = (bodyString: string): { systemMessage?: string; userMessage?: string; message?: string; model?: string } => {
         try {
             return JSON.parse(bodyString);
         } catch {
@@ -140,8 +141,16 @@ const PromptsPage = () => {
 
     const getMessagePreview = (bodyString: string): string => {
         const body = parseBody(bodyString);
-        const message = body.message || '';
-        return message.length > 150 ? message.substring(0, 150) + '...' : message;
+        // Support both new (userMessage/systemMessage) and old (message) formats
+        const message = body.userMessage || body.message || '';
+        const systemMessage = body.systemMessage || '';
+
+        // Combine system and user messages for preview
+        const combinedMessage = systemMessage
+            ? `[System] ${systemMessage}\n[User] ${message}`
+            : message;
+
+        return combinedMessage.length > 150 ? combinedMessage.substring(0, 150) + '...' : combinedMessage;
     };
 
     const handleDeletePrompt = async (promptId: number) => {
@@ -360,15 +369,26 @@ const PromptsPage = () => {
                         </Form.Item>
 
                         <Form.Item
-                            label="Message"
-                            name={['body', 'message']}
+                            label="System Message"
+                            name={['body', 'systemMessage']}
+                        >
+                            <TextArea
+                                allowClear
+                                rows={4}
+                                placeholder="Enter system message (optional)"
+                            />
+                        </Form.Item>
+
+                        <Form.Item
+                            label="User Message"
+                            name={['body', 'userMessage']}
                             rules={[
-                                { required: true, message: 'Please enter the prompt message' },
+                                { required: true, message: 'Please enter the user message' },
                             ]}
                         >
                             <TextArea
                                 rows={8}
-                                placeholder="Enter your prompt message"
+                                placeholder="Enter user message"
                             />
                         </Form.Item>
 

@@ -1,11 +1,12 @@
 import * as zod from 'zod'
 
 // ============================================================================
-// Prompt Body Schema - Simple message format
+// Prompt Body Schema - System and User message format
 // ============================================================================
 
 export const PromptBodySchema = zod.object({
-    message: zod.string(),
+    systemMessage: zod.string().optional(),
+    userMessage: zod.string(),
     model: zod.string().min(1, {
         message: 'Model cannot be empty',
     }).optional(),

@@ -22,7 +22,8 @@ const { TextArea } = Input;
 interface FormValues {
     name: string;
     body: {
-        message: string;
+        systemMessage?: string;
+        userMessage: string;
         model?: string;
         responseSchema?: string;
     };
@@ -70,10 +71,15 @@ const PromptEditPage = () => {
             const parsedModel = typeof parsedBody.model === 'string' ? parsedBody.model : undefined;
             const parsedResponseSchema = typeof parsedBody.responseSchema === 'string' ? parsedBody.responseSchema : undefined;
 
+            // Support both old (message) and new (userMessage/systemMessage) formats
+            const parsedSystemMessage = typeof parsedBody.systemMessage === 'string' ? parsedBody.systemMessage : undefined;
+            const parsedUserMessage = typeof parsedBody.userMessage === 'string' ? parsedBody.userMessage : (parsedBody.message || '');
+
             form.setFieldsValue({
                 name: data.prompt.name,
                 body: {
-                    message: parsedBody.message || '',
+                    systemMessage: parsedSystemMessage,
+                    userMessage: parsedUserMessage,
                     model: parsedModel,
                     responseSchema: parsedResponseSchema,
                 },
@@ -96,7 +102,8 @@ const PromptEditPage = () => {
             setSaving(true);
 
             const sanitizedBody = {
-                message: values.body.message,
+                systemMessage: values.body.systemMessage?.trim() ? values.body.systemMessage.trim() : undefined,
+                userMessage: values.body.userMessage,
                 model: values.body.model?.trim() ? values.body.model.trim() : undefined,
                 responseSchema: values.body.responseSchema?.trim() ? values.body.responseSchema.trim() : undefined,
             };
@@ -227,15 +234,26 @@ const PromptEditPage = () => {
                             </Form.Item>
 
                             <Form.Item
-                                label="Message"
-                                name={['body', 'message']}
+                                label="System Message"
+                                name={['body', 'systemMessage']}
+                            >
+                                <TextArea
+                                    allowClear
+                                    rows={4}
+                                    placeholder="Enter system message (optional)"
+                                />
+                            </Form.Item>
+
+                            <Form.Item
+                                label="User Message"
+                                name={['body', 'userMessage']}
                                 rules={[
-                                    { required: true, message: 'Please enter the prompt message' },
+                                    { required: true, message: 'Please enter the user message' },
                                 ]}
                             >
                                 <TextArea
                                     rows={12}
-                                    placeholder="Enter your prompt message"
+                                    placeholder="Enter user message"
                                 />
                             </Form.Item>
 

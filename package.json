@@ -1,6 +1,6 @@
 {
   "name": "last-config",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
@@ -29,10 +29,10 @@
     "bcryptjs": "^3.0.3",
     "lodash": "^4.17.21",
     "luxon": "^3.7.2",
-    "next": "16.0.7",
+    "next": "^16.0.7",
     "next-auth": "^5.0.0-beta.30",
-    "react": "19.2.1",
-    "react-dom": "19.2.1",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
     "uuid": "^13.0.0",
     "zod": "^4.1.13"
   },
